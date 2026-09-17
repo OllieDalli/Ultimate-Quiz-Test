@@ -1,0 +1,86 @@
+name: Consolidate Classic Questions
+
+on:
+  push:
+    paths:
+      - ".github/workflows/consolidate-classic.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Merge Classic question files
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+          import re
+
+          base_path = Path("questions.js")
+          base_source = base_path.read_text(encoding="utf-8")
+
+          def extract_array(source, name):
+              match = re.search(
+                  rf"const\\s+{re.escape(name)}\\s*=\\s*(\\[[\\s\\S]*\\])\\s*;?\\s*$",
+                  source
+              )
+              if not match:
+                  raise RuntimeError(f"Could not find {name}")
+              value = json.loads(match.group(1))
+              if not isinstance(value, list):
+                  raise RuntimeError(f"{name} is not an array")
+              return value
+
+          questions = extract_array(base_source, "QUESTIONS")
+
+          expansion_files = [
+              (Path("question_expansion.js"), "EXPANDED_CLASSIC_QUESTIONS_1"),
+              (Path("question_expansion_2.js"), "EXPANDED_CLASSIC_QUESTIONS_2"),
+              (Path("question_expansion_3.js"), "EXPANDED_CLASSIC_QUESTIONS_3"),
+              (Path("question_expansion_4.js"), "EXPANDED_CLASSIC_QUESTIONS_4"),
+          ]
+
+          for path, name in expansion_files:
+              extra = extract_array(path.read_text(encoding="utf-8"), name)
+              questions.extend(extra)
+
+          ids = [q.get("id") for q in questions]
+          if any(not item for item in ids):
+              raise RuntimeError("Every Classic question must have an id")
+          if len(ids) != len(set(ids)):
+              raise RuntimeError("Duplicate Classic question ids found")
+
+          output = (
+              "// ============================================================\\n"
+              "// THE ULTIMATE QUIZ — CLASSIC QUESTION BANK\\n"
+              "// All Classic questions are kept in this single file.\\n"
+              "// ============================================================\\n\\n"
+              "const QUESTIONS = "
+              + json.dumps(questions, ensure_ascii=False, separators=(",", ":"))
+              + ";\\n\\n"
+              "function getQuestionsForDifficulty(difficulty) {\\n"
+              "    const normalized = String(difficulty || \"\").trim().toLowerCase();\\n"
+              "    return QUESTIONS.filter(question =>\\n"
+              "        String(question?.difficulty || \"\").trim().toLowerCase() === normalized\\n"
+              "    );\\n"
+              "}\\n"
+          )
+
+          base_path.write_text(output, encoding="utf-8")
+
+          for path, _ in expansion_files:
+              path.unlink()
+
+      - name: Commit consolidated bank
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add questions.js question_expansion.js question_expansion_2.js question_expansion_3.js question_expansion_4.js
+          git diff --cached --quiet || git commit -m "Merge all Classic questions into one file"
+          git push
