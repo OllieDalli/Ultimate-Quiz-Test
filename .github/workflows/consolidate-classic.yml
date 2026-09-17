@@ -1,4 +1,4 @@
-name: Consolidate Classic Questions
+name: Finish Classic Question Bank Cleanup
 
 on: push
 
@@ -6,59 +6,49 @@ permissions:
   contents: write
 
 jobs:
-  consolidate:
+  cleanup:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Merge Classic question files
+      - name: Remove old Classic loaders
         shell: python
         run: |
           from pathlib import Path
+          import re
 
-          files = [
-              "questions.js",
+          index = Path("index.html")
+          source = index.read_text(encoding="utf-8")
+
+          for filename in [
               "question_expansion.js",
               "question_expansion_2.js",
               "question_expansion_3.js",
               "question_expansion_4.js",
-          ]
+          ]:
+              source = re.sub(
+                  rf"\\s*<script\\s+src=[\"']{re.escape(filename)}[\"']\\s*></script>",
+                  "",
+                  source,
+                  flags=re.IGNORECASE,
+              )
 
-          arrays = []
-          for path in files:
-              source = Path(path).read_text(encoding="utf-8")
-              first = source.find("[")
-              last = source.rfind("]")
-              if first < 0 or last <= first:
-                  raise RuntimeError(f"Could not locate question array in {path}")
-              arrays.append(source[first + 1:last].strip())
+          index.write_text(source, encoding="utf-8")
 
-          output = (
-              "// ============================================================\n"
-              "// THE ULTIMATE QUIZ — CLASSIC QUESTION BANK\n"
-              "// All Classic questions are kept in this single file.\n"
-              "// ============================================================\n\n"
-              "const QUESTIONS = ["
-              + ",".join(arrays)
-              + "];\n\n"
-              "function getQuestionsForDifficulty(difficulty) {\n"
-              "    const normalized = String(difficulty || \"\").trim().toLowerCase();\n"
-              "    return QUESTIONS.filter(question =>\n"
-              "        String(question?.difficulty || \"\").trim().toLowerCase() === normalized\n"
-              "    );\n"
-              "}\n"
-          )
+          fix = Path("classic-difficulty-fix.js")
+          if fix.exists():
+              fix.unlink()
 
-          Path("questions.js").write_text(output, encoding="utf-8")
-          for path in files[1:]:
-              Path(path).unlink()
+          workflow = Path(".github/workflows/consolidate-classic.yml")
+          if workflow.exists():
+              workflow.unlink()
 
-      - name: Commit consolidated bank
+      - name: Commit final Classic setup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Merge all Classic questions into one file"
+          git diff --cached --quiet || git commit -m "Finish Classic question bank cleanup"
           git push
