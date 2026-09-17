@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Question Bank Validator</title>
+<style>
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:24px;background:#f4f5f7;color:#16181d}.card{max-width:900px;margin:auto;background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.08)}h1{margin-top:0}pre{white-space:pre-wrap;line-height:1.5;background:#f7f7f8;padding:18px;border-radius:12px;overflow:auto}.pass{border-left:5px solid #16803c}.fail{border-left:5px solid #c62828}.muted{color:#666}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Question Bank Validator</h1>
+<p class="muted">Checks the live questions.js bank for structural problems before publishing.</p>
+<pre id="report">Checking…</pre>
+</div>
+<script src="questions.js"></script>
+<script>
+(() => {
+  const required = ['Gaming','Music','TV and Film','History','General Knowledge','Science','Geography','Maths'];
+  const errors = [];
+  const warnings = [];
+  const ids = new Set();
+  const texts = new Set();
+  const counts = {};
+  const difficulties = {easy:0,medium:0,hard:0};
+  const normalise = v => String(v ?? '').trim().replace(/\s+/g,' ').toLowerCase();
+
+  if (!Array.isArray(window.QUESTIONS)) errors.push('QUESTIONS is not an array.');
+  (window.QUESTIONS || []).forEach((q,i) => {
+    const n = i + 1;
+    if (!q || typeof q !== 'object') { errors.push(`Question ${n}: not an object.`); return; }
+    ['id','difficulty','question','answers','correct','category'].forEach(k => { if (!(k in q)) errors.push(`Question ${n}: missing ${k}.`); });
+    if (!q.id || ids.has(q.id)) errors.push(`Question ${n}: duplicate or empty ID.`); else ids.add(q.id);
+    if (!['easy','medium','hard'].includes(q.difficulty)) errors.push(`Question ${n}: invalid difficulty.`); else difficulties[q.difficulty]++;
+    if (!q.category) errors.push(`Question ${n}: missing category.`); else { counts[q.category]=(counts[q.category]||0)+1; if(!required.includes(q.category)) warnings.push(`Question ${n}: unrecognised category ${q.category}.`); }
+    if (!String(q.question||'').trim()) errors.push(`Question ${n}: empty question.`); else { const t=normalise(q.question); if(texts.has(t)) warnings.push(`Question ${n}: duplicate question text.`); texts.add(t); }
+    if (!Array.isArray(q.answers) || q.answers.length !== 4) { errors.push(`Question ${n}: must have exactly four answers.`); return; }
+    const a=q.answers.map(normalise); if(new Set(a).size!==4) errors.push(`Question ${n}: duplicate answer choices.`);
+    if(q.answers.filter(x=>x===q.correct).length!==1) errors.push(`Question ${n}: correct answer does not match exactly one choice.`);
+  });
+
+  let out=`Questions checked: ${(window.QUESTIONS||[]).length}\n\nCategories:\n`;
+  required.forEach(c=>out+=`  ${c}: ${counts[c]||0}\n`);
+  out+='\nDifficulty:\n'; Object.entries(difficulties).forEach(([d,n])=>out+=`  ${d}: ${n}\n`);
+  if(warnings.length) out+=`\nWarnings: ${warnings.length}\n${warnings.slice(0,20).join('\n')}\n`;
+  out+='\nDuplicate question wording is a warning; structural answer errors still fail validation.';
+  out+=`\n${errors.length ? '❌ FAILED — '+errors.length+' error(s).' : '✅ PASSED — no structural question-bank errors found.'}`;
+  const el=document.getElementById('report'); el.textContent=out; el.className=errors.length?'fail':'pass';
+})();
+</script>
+</body>
+</html>

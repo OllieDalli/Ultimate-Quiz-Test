@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>The Ultimate Quiz</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .round-type-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto 14px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            font-size: .82rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        #song-audio { width: 100%; margin: 10px 0 18px; }
+        .song-instruction { margin: 0 0 16px; font-weight: 700; }
+        .song-play-button {
+            display: block;
+            width: min(100%, 280px);
+            margin: 0 auto 18px;
+            min-height: 50px;
+            border: 1px solid #d7b4b6;
+            border-radius: 14px;
+            background: #fff;
+            color: #b5121b;
+            font-weight: 900;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform .15s ease, background .15s ease;
+        }
+        .song-play-button:hover { transform: translateY(-1px); }
+        .song-play-button:active { transform: translateY(0); }
+        body.dark-mode .song-play-button {
+            background: #111;
+            color: #ff3b45;
+            border-color: #5b171b;
+        }
+        .song-play-button.hidden { display: none !important; }
+
+        /* SPEED ROUND */
+        .speed-instruction {
+            margin: 0 auto 18px;
+            max-width: 680px;
+            font-weight: 800;
+            line-height: 1.5;
+        }
+        .speed-scoring {
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .speed-scoring span {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.14);
+            font-size: .78rem;
+            font-weight: 900;
+        }
+        #answer-buttons .answer-button.speed-local-selected {
+            border-color: #d59b00 !important;
+            background: #fff2c7 !important;
+            color: #5f4700 !important;
+            box-shadow: 0 0 0 3px rgba(213,155,0,.18);
+        }
+        #answer-buttons .speed-local-pick {
+            display: block;
+            margin-top: 7px;
+            font-size: .68rem;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: #9a6b00;
+        }
+        body.dark-mode #answer-buttons .answer-button.speed-local-selected {
+            background: #3a2b05 !important;
+            border-color: #d9a900 !important;
+            color: #ffe9a0 !important;
+        }
+        body.dark-mode #answer-buttons .speed-local-pick {
+            color: #ffd65c;
+        }
+
+
+
+        /* SPEED ROUND RESPONSE TIMES */
+        .speed-response-times {
+            width: min(100%, 720px);
+            margin: 22px auto 0;
+            text-align: left;
+        }
+        .speed-times-loading {
+            padding: 18px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 16px;
+            font-weight: 800;
+            opacity: .75;
+        }
+        .speed-times-header,
+        .speed-time-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 120px 70px;
+            align-items: center;
+            gap: 14px;
+        }
+        .speed-times-header {
+            padding: 0 16px 8px;
+            color: #8a8a8a;
+            font-size: .68rem;
+            font-weight: 950;
+            letter-spacing: .1em;
+        }
+        .speed-time-row {
+            min-height: 58px;
+            margin-top: 8px;
+            padding: 10px 16px;
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 15px;
+            background: rgba(255,255,255,.055);
+        }
+        .speed-time-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            font-weight: 850;
+        }
+        .speed-time-player > span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .speed-time-rank {
+            display: inline-grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.09);
+            font-size: .75rem;
+            font-weight: 950;
+        }
+        .speed-time-value {
+            font-variant-numeric: tabular-nums;
+            font-size: 1rem;
+        }
+        .speed-time-points {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .speed-time-correct .speed-time-points { color: #22c55e; }
+        .speed-time-wrong .speed-time-points { color: #ef4444; }
+        .speed-time-timeout .speed-time-value,
+        .speed-time-timeout .speed-time-points { color: #999; }
+        body:not(.dark-mode) .speed-time-row {
+            background: rgba(0,0,0,.035);
+            border-color: rgba(0,0,0,.09);
+        }
+        @media (max-width: 560px) {
+            .speed-times-header,
+            .speed-time-row {
+                grid-template-columns: minmax(0, 1fr) 82px 48px;
+                gap: 8px;
+                padding-left: 11px;
+                padding-right: 11px;
+            }
+            .speed-times-header { font-size: .6rem; }
+            .speed-time-row { min-height: 52px; }
+            .speed-time-value, .speed-time-points { font-size: .88rem; }
+        }
+
+
+        /* WINNER TAKES ALL */
+        #wta-phase { width: min(1180px, 100%); margin: 0 auto; }
+        .wta-shell { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:22px; align-items:stretch; }
+        .wta-main,.wta-mini-board,.wta-reveal-card { border:1px solid rgba(255,255,255,.10); border-radius:24px; background:rgba(255,255,255,.045); box-shadow:0 18px 55px rgba(0,0,0,.18); }
+        .wta-main { min-height:570px; padding:26px; display:flex; flex-direction:column; }
+        .wta-heading-row { display:flex; align-items:flex-start; justify-content:space-between; gap:22px; }
+        .wta-heading-copy { min-width:0; flex:1; }
+        .wta-eyebrow { margin:0 0 12px; color:#ff3b45; font-size:.72rem; font-weight:950; letter-spacing:.14em; text-transform:uppercase; }
+        .wta-title { margin:0; max-width:820px; font-size:clamp(2rem,4.2vw,3.35rem); line-height:1.06; font-weight:950; letter-spacing:-.025em; }
+        .wta-timer { min-width:94px; padding:10px 14px; border-radius:17px; background:rgba(181,18,27,.14); border:1px solid rgba(255,59,69,.28); text-align:center; }
+        .wta-timer-label { display:block; margin-bottom:2px; font-size:.58rem; font-weight:950; letter-spacing:.12em; opacity:.65; }
+        #wta-timer { display:block; font-size:1.8rem; line-height:1; font-variant-numeric:tabular-nums; }
+        #wta-timer.wta-danger { color:#ff4d58; animation:wtaTimerPulse .8s ease-in-out infinite; }
+        @keyframes wtaTimerPulse { 50% { transform:scale(1.08); } }
+        .wta-question-meta { margin:28px 0 12px; font-size:.7rem; font-weight:900; letter-spacing:.1em; text-transform:uppercase; opacity:.55; }
+        .wta-question-category { display:inline-flex; align-items:center; width:max-content; max-width:100%; margin:-2px 0 18px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,59,69,.24); background:rgba(255,59,69,.08); color:#ff6972; font-size:.62rem; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
+
+        #wta-question-text { max-width:820px; margin:0; font-size:inherit; line-height:inherit; text-align:left; }
+        #wta-answer-buttons { width:min(820px,100%); margin:0 auto; }
+        #wta-answer-buttons .answer-button { min-height:86px; font-size:1.08rem; padding:18px 22px; }
+        #wta-answer-buttons .answer-button.wta-selected { background:#f59e0b !important; border-color:#f59e0b !important; color:#111827 !important; transform:translateY(-2px) scale(1.01); }
+        .wta-feedback { min-height:36px; margin-top:18px; text-align:center; font-size:1rem; font-weight:950; }
+        .wta-feedback.good { color:#22c55e; } .wta-feedback.bad { color:#ef4444; }
+        .wta-mini-board { padding:18px; overflow:hidden; }
+        .wta-board-top { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:2px 2px 14px; }
+        .wta-board-title { font-size:.75rem; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
+        .wta-board-live { display:inline-flex; align-items:center; gap:6px; color:#22c55e; font-size:.62rem; font-weight:950; letter-spacing:.08em; }
+        .wta-live-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.10); animation:wtaLivePulse 1.4s ease-in-out infinite; }
+        @keyframes wtaLivePulse { 50% { transform:scale(1.25); opacity:.65; } }
+        .wta-board-header { display:grid; grid-template-columns:32px minmax(0,1fr) 64px; gap:8px; padding:0 10px 7px; color:#888; font-size:.58rem; font-weight:950; letter-spacing:.09em; }
+        .wta-board-header span:last-child { text-align:right; }
+        #wta-leaderboard-list { display:flex; flex-direction:column; gap:8px; }
+        .wta-board-row { display:grid; grid-template-columns:32px minmax(0,1fr) 64px; align-items:center; gap:8px; min-height:54px; padding:7px 10px; border:1px solid rgba(255,255,255,.08); border-radius:15px; background:rgba(255,255,255,.045); transition:transform .45s cubic-bezier(.2,.8,.2,1),background .25s ease,box-shadow .25s ease; }
+        .wta-board-row.me { border-color:rgba(255,59,69,.32); box-shadow:inset 3px 0 0 #ff3b45; }
+        .wta-board-rank { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.08); font-size:.72rem; font-weight:950; }
+        .wta-board-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:850; }
+        .wta-board-score { text-align:right; font-size:1.05rem; font-weight:950; font-variant-numeric:tabular-nums; }
+        .wta-board-score.bump { animation:wtaScoreBump .4s ease; }
+        @keyframes wtaScoreBump { 45% { transform:scale(1.22); } }
+        .wta-board-score.positive { color:#22c55e; } .wta-board-score.negative { color:#ef4444; }
+        #wta-reveal-phase { width:min(850px,100%); margin:0 auto; text-align:center; }
+        .wta-reveal-card { padding:clamp(30px,6vw,58px) 24px; }
+        .wta-reveal-trophy { font-size:4rem; animation:wtaTrophyPop .7s cubic-bezier(.2,1.3,.3,1) both; }
+        @keyframes wtaTrophyPop { from { transform:scale(.5) rotate(-12deg); opacity:0; } to { transform:scale(1) rotate(0); opacity:1; } }
+        .wta-reveal-card h1 { margin:8px 0; } .wta-winner-points { margin:0 0 22px; opacity:.72; font-weight:800; }
+        .wta-award { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px; background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.28); color:#22c55e; font-weight:950; }
+        @media(max-width:850px) { .wta-shell{grid-template-columns:1fr;} .wta-mini-board{order:-1;} .wta-main{min-height:auto;} }
+        @media(max-width:560px) { .wta-main{padding:18px 12px;border-radius:20px;} .wta-mini-board{padding:12px;border-radius:20px;} .wta-heading-row{align-items:flex-start;gap:10px;} .wta-eyebrow{margin-bottom:9px;} .wta-title{font-size:clamp(1.7rem,8vw,2.25rem);line-height:1.08;} .wta-timer{min-width:76px;padding:8px 10px;} #wta-timer{font-size:1.5rem;} .wta-question-meta{margin-top:22px;} #wta-answer-buttons .answer-button{min-height:72px;font-size:1rem;padding:15px 16px;} .wta-board-row{min-height:48px;} }
+        /* WTA visual polish: large question + always-visible 2x2 answer grid */
+        .wta-main { min-height: 700px; padding: 30px 34px 34px; }
+        .wta-heading-row { align-items: flex-start; }
+        .wta-eyebrow { margin: 0; font-size: .82rem; letter-spacing: .16em; }
+        .wta-timer { min-width: 118px; padding: 14px 18px; border-radius: 18px; }
+        .wta-timer-label { font-size: .68rem; }
+        #wta-timer { font-size: 2.65rem; font-weight: 950; }
+        .wta-question-meta { margin: 30px 0 14px; font-size: .82rem; letter-spacing: .13em; opacity: .62; }
+        #wta-question-text { display:block; max-width: 1000px; margin: 0 0 24px; font-size: clamp(2.7rem, 4.8vw, 4.35rem); line-height: 1.04; font-weight: 950; letter-spacing: -.035em; text-align: left; }
+        .wta-question-category { margin: 0 0 28px; padding: 8px 14px; font-size: .72rem; letter-spacing: .12em; }
+        #wta-answer-buttons { width:100%; max-width:none; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin:0; }
+        #wta-answer-buttons .answer-button { min-height: 132px; padding: 22px 28px; border: 2px solid rgba(255,59,69,.45); border-radius: 18px; background: rgba(255,255,255,.025); color: #fff; font-size: clamp(1.35rem, 2vw, 1.72rem); line-height:1.15; font-weight:900; box-shadow: 0 0 0 1px rgba(255,59,69,.05), 0 8px 28px rgba(0,0,0,.16); transition: transform .14s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+#wta-answer-buttons .answer-button:hover:not(:disabled) { transform: translateY(-3px); border-color:#ff2438; box-shadow: 0 0 0 1px rgba(255,36,56,.16), 0 10px 30px rgba(0,0,0,.24), 0 0 22px rgba(255,36,56,.12); }
+        body.dark-mode #wta-answer-buttons .answer-button { background: rgba(255,255,255,.02); color:#fff; border-color:rgba(255,36,56,.5); }
+        body:not(.dark-mode) #wta-answer-buttons .answer-button { color:#171717; background:rgba(255,255,255,.72); border-color:rgba(181,27,37,.35); }
+        @media(max-width:850px) { .wta-main { padding:26px; } #wta-question-text { font-size:clamp(2.35rem,7vw,3.5rem); } }
+        @media(max-width:560px) { .wta-main{padding:20px 14px 22px;} .wta-heading-row{gap:12px;} .wta-eyebrow{font-size:.7rem;} .wta-timer{min-width:84px;padding:9px 11px;} #wta-timer{font-size:1.8rem;} .wta-question-meta{margin:24px 0 12px;font-size:.68rem;} #wta-question-text{font-size:clamp(2rem,9vw,2.8rem);line-height:1.06;margin-bottom:18px;} .wta-question-category{margin-bottom:18px;} #wta-answer-buttons{gap:10px;} #wta-answer-buttons .answer-button{min-height:92px;padding:16px 10px;font-size:clamp(1.05rem,4.5vw,1.35rem);border-radius:15px;} }
+        body:not(.dark-mode) .wta-main,body:not(.dark-mode) .wta-mini-board,body:not(.dark-mode) .wta-reveal-card { background:rgba(255,255,255,.92); border-color:rgba(0,0,0,.09); box-shadow:0 18px 50px rgba(0,0,0,.08); }
+        body:not(.dark-mode) .wta-board-row { background:rgba(0,0,0,.035); border-color:rgba(0,0,0,.08); }
+
+        /* THE ULTIMATE QUIZ — create & join refresh */
+        #create-screen, #join-screen {
+            background: linear-gradient(145deg, #fff 0%, #fff7f7 55%, #f3f3f3 100%);
+            color: #171717;
+            min-height: 100vh;
+            padding: 24px 18px;
+        }
+        #create-screen .card, #join-screen .card {
+            width: min(100%, 520px);
+            margin: 0 auto;
+            padding: 34px 30px 32px;
+            background: rgba(255,255,255,.98);
+            border: 1px solid #ead8d9;
+            border-radius: 24px;
+            box-shadow: 0 18px 45px rgba(72, 20, 22, .10);
+        }
+        #create-screen .back-button, #join-screen .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 30px;
+            padding: 9px 13px;
+            border: 1px solid #e4c5c7;
+            border-radius: 10px;
+            background: #fff;
+            color: #b5121b;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        #create-screen h1, #join-screen h1 {
+            margin: 0 0 9px;
+            color: #171717;
+            font-size: clamp(2rem, 6vw, 2.7rem);
+            font-weight: 950;
+            letter-spacing: -.04em;
+        }
+        #create-screen .muted, #join-screen .muted {
+            color: #686868;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+        #create-screen form, #join-screen form {
+            display: grid;
+            gap: 10px;
+        }
+        #create-screen label, #join-screen label {
+            color: #292929;
+            font-size: .9rem;
+            font-weight: 900;
+            letter-spacing: .02em;
+            margin-top: 8px;
+        }
+        #create-screen input, #join-screen input {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 54px;
+            padding: 0 16px;
+            border: 2px solid #e3d5d5;
+            border-radius: 13px;
+            background: #fff;
+            color: #171717;
+            font-size: 1rem;
+            font-weight: 700;
+            outline: none;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        #create-screen input:focus, #join-screen input:focus {
+            border-color: #b5121b;
+            box-shadow: 0 0 0 4px rgba(181,18,27,.10);
+        }
+        #create-screen input::placeholder, #join-screen input::placeholder {
+            color: #aaa;
+            font-weight: 600;
+        }
+        #create-screen form .primary-button, #join-screen form .primary-button {
+            width: 100%;
+            min-height: 54px;
+            margin-top: 16px;
+            background: #b5121b;
+            border-color: #b5121b;
+            color: #fff;
+            border-radius: 13px;
+            box-shadow: 0 10px 24px rgba(181,18,27,.20);
+            font-weight: 900;
+        }
+        #create-screen form .primary-button:hover, #join-screen form .primary-button:hover {
+            background: #981018;
+            border-color: #981018;
+        }
+        #join-screen #join-code {
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            font-size: 1.1rem;
+            font-weight: 900;
+        }
+        @media (max-width: 480px) {
+            #create-screen, #join-screen { padding: 14px 12px; }
+            #create-screen .card, #join-screen .card {
+                padding: 26px 20px 24px;
+                border-radius: 20px;
+            }
+        }
+
+        /* THE ULTIMATE QUIZ — home & lobby refresh */
+        #home-screen, #lobby-screen {
+            background: linear-gradient(145deg, #fff 0%, #fff7f7 48%, #f4f4f4 100%);
+            color: #171717;
+        }
+        #home-screen .hero {
+            max-width: 680px;
+            padding: 52px 28px;
+            text-align: center;
+        }
+        #home-screen .logo {
+            font-size: clamp(2.5rem, 8vw, 5.2rem);
+            line-height: .95;
+            font-weight: 950;
+            letter-spacing: -.055em;
+            color: #b5121b;
+            text-shadow: 0 3px 0 rgba(181,18,27,.08);
+        }
+        #home-screen .logo span {
+            display: block;
+            color: #171717;
+            font-size: .58em;
+            letter-spacing: .08em;
+            margin-top: 12px;
+        }
+        #home-screen .tagline {
+            color: #666;
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 22px 0 30px;
+        }
+        #home-screen .home-buttons {
+            display: grid;
+            gap: 13px;
+            max-width: 360px;
+            margin: 0 auto;
+        }
+        #home-screen .primary-button, #lobby-screen .primary-button {
+            background: #b5121b;
+            border-color: #b5121b;
+            box-shadow: 0 10px 24px rgba(181,18,27,.18);
+        }
+        #home-screen .secondary-button {
+            background: #fff;
+            color: #b5121b;
+            border: 2px solid #b5121b;
+        }
+        #lobby-screen .game-container {
+            max-width: 720px;
+            padding: 26px 20px 40px;
+        }
+        #lobby-screen .top-bar {
+            background: #fff;
+            border: 1px solid #e7d6d6;
+            border-radius: 18px;
+            padding: 15px 18px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.06);
+        }
+        #lobby-screen .small-label { color: #9a5558; }
+        #lobby-screen #lobby-code { color: #b5121b; font-size: 1.35rem; letter-spacing: .12em; }
+        #lobby-screen .lobby-copy-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        #lobby-screen #lobby-copy-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-width: 58px;
+            height: 34px;
+            padding: 0 12px;
+            border: 1px solid #6d3fe0;
+            border-radius: 999px;
+            background: rgba(109, 63, 224, .10);
+            color: #6d3fe0;
+            font-size: .72rem;
+            font-weight: 900;
+            letter-spacing: .06em;
+            cursor: pointer;
+            transition: transform .15s ease, background .15s ease, border-color .15s ease;
+        }
+        #lobby-screen #lobby-copy-button:hover {
+            transform: translateY(-1px);
+            background: rgba(109, 63, 224, .16);
+        }
+        #lobby-screen #lobby-copy-button:active { transform: translateY(0); }
+        #lobby-screen #lobby-copy-button.copied {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, .12);
+            color: #16a34a;
+        }
+        #lobby-screen #lobby-copy-check {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #22c55e;
+            color: #fff;
+            font-size: .68rem;
+            font-weight: 900;
+            opacity: 0;
+            transform: scale(.7);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+        #lobby-screen #lobby-copy-check.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        body.dark-mode #lobby-screen #lobby-copy-button {
+            background: rgba(124, 92, 246, .12);
+            border-color: #7c5cf6;
+            color: #a994ff;
+        }
+        body.dark-mode #lobby-screen #lobby-copy-button:hover { background: rgba(124, 92, 246, .20); }
+        body.dark-mode #lobby-screen #lobby-copy-button.copied {
+            background: rgba(34, 197, 94, .14);
+            border-color: #22c55e;
+            color: #4ade80;
+        }
+        #lobby-screen .lobby-header {
+            text-align: center;
+            padding: 38px 10px 24px;
+        }
+        #lobby-screen .lobby-header .eyebrow { color: #b5121b; font-weight: 900; }
+        #lobby-screen .lobby-header h1 { color: #171717; margin-bottom: 8px; }
+        #lobby-screen .players-card {
+            background: #fff;
+            border: 1px solid #e5dede;
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.07);
+        }
+        #lobby-screen .section-title {
+            color: #171717;
+            font-weight: 900;
+            padding: 0 4px 13px;
+            border-bottom: 2px solid #f1dddd;
+        }
+        #lobby-screen #player-count {
+            background: #b5121b;
+            color: #fff;
+            border-radius: 999px;
+            min-width: 30px;
+            padding: 3px 9px;
+            text-align: center;
+        }
+        #lobby-screen #players-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        #lobby-screen .player-card {
+            display: flex;
+            align-items: center;
+            min-height: 62px;
+            padding: 0 18px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-left: 5px solid #d7d7d7;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.035);
+        }
+        #lobby-screen .player-card.me {
+            background: #fff5f5;
+            border-color: #edc8ca;
+            border-left-color: #b5121b;
+        }
+        #lobby-screen .player-card .player-name {
+            color: #171717;
+            font-size: 1.08rem;
+            font-weight: 900;
+            letter-spacing: .01em;
+        }
+        #lobby-screen .player-card .player-points { display: none !important; }
+        #lobby-screen #start-game-button {
+            width: 100%;
+            margin-top: 18px;
+        }
+        #lobby-screen .lobby-home-button {
+            width: 100%;
+            margin-top: 10px;
+            min-height: 50px;
+            border: 2px solid #b5121b;
+            border-radius: 14px;
+            background: transparent;
+            color: #b5121b;
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform .15s ease, background .15s ease;
+        }
+        #lobby-screen .lobby-home-button:hover {
+            transform: translateY(-1px);
+            background: #fff1f1;
+        }
+        #final-phase .final-home-button {
+            display: block;
+            width: min(360px, 100%);
+            margin: 12px auto 0;
+            min-height: 54px;
+            border: 2px solid #b5121b;
+            border-radius: 14px;
+            background: transparent;
+            color: #b5121b;
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform .15s ease, background .15s ease;
+        }
+        #final-phase .final-home-button:hover {
+            transform: translateY(-1px);
+            background: #fff1f1;
+        }
+        body.dark-mode #lobby-screen .lobby-home-button,
+        body.dark-mode #final-phase .final-home-button {
+            border-color: #ff4d57;
+            color: #ff4d57;
+            background: transparent;
+        }
+        body.dark-mode #lobby-screen .lobby-home-button:hover,
+        body.dark-mode #final-phase .final-home-button:hover {
+            background: rgba(255,77,87,.10);
+        }
+        #lobby-screen .status-message { color: #666; text-align: center; }
+    </style>
+
+    <style id="theme-styles">
+        /* =========================================================
+           THE ULTIMATE QUIZ — LIGHT / DARK MODE
+           Light mode is the default. Dark mode is black + red.
+           ========================================================= */
+        :root {
+            --uq-red: #b5121b;
+            --uq-red-dark: #8f0e15;
+            --uq-red-bright: #e01824;
+            --uq-black: #090909;
+            --uq-white: #ffffff;
+            --uq-light-bg: #fff7f7;
+            --uq-light-card: #ffffff;
+            --uq-light-text: #171717;
+            --uq-light-muted: #686868;
+        }
+
+        body {
+            background: #ffffff;
+            color: var(--uq-light-text);
+            transition: background-color .25s ease, color .25s ease;
+        }
+
+        #theme-toggle {
+            position: fixed;
+            top: 16px;
+            right: 18px;
+            z-index: 9999;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #171717;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 1.45rem;
+            line-height: 1;
+            opacity: .78;
+            transition: transform .2s ease, opacity .2s ease, color .2s ease;
+        }
+        #theme-toggle:hover { opacity: 1; transform: rotate(8deg) scale(1.08); }
+        #theme-toggle:focus-visible {
+            outline: 2px solid var(--uq-red);
+            outline-offset: 4px;
+            border-radius: 50%;
+        }
+        #theme-toggle .theme-icon {
+            display: block;
+            transform: translateY(-1px);
+        }
+
+        /* Make the existing create/join/home/lobby design follow the theme. */
+        #home-screen {
+            background: linear-gradient(145deg, #ffffff 0%, #fff7f7 58%, #f4f4f4 100%);
+            color: var(--uq-light-text);
+        }
+        #create-screen, #join-screen {
+            background: linear-gradient(145deg, #ffffff 0%, #fff7f7 55%, #f3f3f3 100%);
+            color: var(--uq-light-text);
+        }
+        #create-screen .card, #join-screen .card, #lobby-screen .players-card {
+            background: rgba(255,255,255,.98);
+            color: var(--uq-light-text);
+        }
+
+        /* DARK MODE */
+        body.dark-mode {
+            background: var(--uq-black);
+            color: #f5f5f5;
+        }
+        body.dark-mode #theme-toggle { color: #ffffff; }
+
+        body.dark-mode #home-screen,
+        body.dark-mode #create-screen,
+        body.dark-mode #join-screen,
+        body.dark-mode #lobby-screen,
+        body.dark-mode #game-screen {
+            background: linear-gradient(145deg, #050505 0%, #100000 58%, #090909 100%) !important;
+            color: #f5f5f5 !important;
+        }
+
+        body.dark-mode #create-screen .card,
+        body.dark-mode #join-screen .card,
+        body.dark-mode #lobby-screen .players-card,
+        body.dark-mode .game-container,
+        body.dark-mode .game-phase {
+            background: #101010 !important;
+            color: #f5f5f5 !important;
+            border-color: #351015 !important;
+            box-shadow: 0 18px 45px rgba(0,0,0,.45);
+        }
+
+        body.dark-mode #create-screen h1,
+        body.dark-mode #join-screen h1,
+        body.dark-mode #lobby-screen .lobby-header h1,
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3,
+        body.dark-mode p,
+        body.dark-mode label,
+        body.dark-mode .muted,
+        body.dark-mode .status-message,
+        body.dark-mode .small-label,
+        body.dark-mode .section-title,
+        body.dark-mode .player-name {
+            color: #f5f5f5 !important;
+        }
+
+        body.dark-mode #create-screen .muted,
+        body.dark-mode #join-screen .muted,
+        body.dark-mode #lobby-screen .status-message,
+        body.dark-mode #lobby-screen .small-label {
+            color: #b8b8b8 !important;
+        }
+
+        body.dark-mode #create-screen input,
+        body.dark-mode #join-screen input {
+            background: #080808 !important;
+            color: #ffffff !important;
+            border-color: #4a181d !important;
+        }
+        body.dark-mode #create-screen input::placeholder,
+        body.dark-mode #join-screen input::placeholder { color: #777 !important; }
+        body.dark-mode #create-screen input:focus,
+        body.dark-mode #join-screen input:focus {
+            border-color: var(--uq-red-bright) !important;
+            box-shadow: 0 0 0 3px rgba(224,24,36,.16) !important;
+        }
+
+        body.dark-mode #create-screen .back-button,
+        body.dark-mode #join-screen .back-button {
+            background: transparent !important;
+            color: #ff5a62 !important;
+            border-color: #542025 !important;
+        }
+
+        body.dark-mode #lobby-screen .player-card {
+            background: #171717 !important;
+            border-color: #3d171b !important;
+            color: #ffffff !important;
+        }
+        body.dark-mode #lobby-screen .player-card.me {
+            background: #250a0d !important;
+            border-color: var(--uq-red) !important;
+        }
+        body.dark-mode #lobby-screen #lobby-code { color: #ff4d57 !important; }
+        body.dark-mode #lobby-screen .lobby-header .eyebrow { color: #ff4d57 !important; }
+        body.dark-mode #lobby-screen #player-count {
+            background: var(--uq-red) !important;
+            color: #ffffff !important;
+        }
+
+        /* Generic controls/cards used by the quiz phases. */
+        body.dark-mode button:not(.primary-button):not(.secondary-button) {
+            color: #ffffff;
+        }
+        body.dark-mode .secondary-button {
+            background: transparent !important;
+            color: #ff4d57 !important;
+            border-color: #8f2028 !important;
+        }
+        body.dark-mode .primary-button {
+            background: var(--uq-red) !important;
+            color: #ffffff !important;
+            border-color: var(--uq-red) !important;
+        }
+
+        @media (max-width: 600px) {
+            #volume-control {
+                top: 10px;
+                left: 10px;
+                height: 40px;
+                padding: 0 9px;
+                gap: 6px;
+            }
+            #volume-slider { width: 82px; }
+            #volume-value { min-width: 30px; font-size: .68rem; }
+            #theme-toggle { top: 10px; right: 10px; }
+        }
+    </style>
+
+
+
+    <style id="ultimate-quiz-polish">
+        /* =========================================================
+           THE ULTIMATE QUIZ — GAME SCREEN POLISH
+           Full-page quiz layout + reliable leaderboard colours.
+           ========================================================= */
+
+        /* Keep the game screen feeling like a full app, not a card. */
+        #game-screen {
+            width: 100%;
+            min-height: 100vh;
+            background: #ffffff !important;
+            color: #171717;
+        }
+
+        #game-screen > .game-container {
+            width: 100%;
+            max-width: none !important;
+            min-height: 100vh;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 28px clamp(18px, 4vw, 64px) 56px !important;
+            background: transparent !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        #game-screen #game-score.score-bubble {
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 7px;
+            min-width: 128px;
+            padding: 9px 17px;
+            box-sizing: border-box;
+            border: 1px solid rgba(181, 18, 27, .22);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #fff1f2 0%, #ffdadd 100%);
+            color: #8f0d16;
+            box-shadow: 0 7px 20px rgba(181, 18, 27, .12), inset 0 1px 0 rgba(255,255,255,.9);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        #game-screen #game-score .score-value {
+            font-size: 1.18rem;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -.02em;
+        }
+
+        #game-screen #game-score .score-label {
+            font-size: .62rem;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: .12em;
+            opacity: .78;
+        }
+
+        #game-screen .game-header {
+            width: min(1180px, 100%);
+            margin: 0 auto 34px;
+            padding: 10px 0 18px;
+            border-bottom: 1px solid #eadcdc;
+        }
+
+        #game-screen .game-phase {
+            width: min(1180px, 100%);
+            min-height: calc(100vh - 150px);
+            box-sizing: border-box;
+            margin: 0 auto;
+            padding: clamp(34px, 6vh, 72px) clamp(8px, 3vw, 36px) 48px !important;
+            background: transparent !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        #game-screen .game-phase > .eyebrow,
+        #game-screen .game-phase > .muted,
+        #game-screen .game-phase > .round-type-banner,
+        #game-screen .game-phase > .phase-icon,
+        #game-screen .game-phase > .selected-player,
+        #game-screen .game-phase > .answer-result,
+        .question-category { display:inline-flex; align-items:center; width:max-content; max-width:100%; margin-left:4px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,59,69,.24); background:rgba(255,59,69,.08); color:#ff6972; font-size:.62rem; font-weight:950; letter-spacing:.1em; text-transform:uppercase; }
+
+        #question-phase #question-text {
+            display:block;
+            width:100%;
+            max-width:1050px;
+            margin:26px auto 30px;
+            padding:0;
+            border:0;
+            border-radius:0;
+            background:transparent;
+            box-shadow:none;
+            color:#171717;
+            font-size:clamp(2.4rem, 5vw, 4.6rem);
+            line-height:1.08;
+            font-weight:950;
+            letter-spacing:-.035em;
+            text-align:center;
+        }
+
+        body.dark-mode #question-phase #question-text { color:#ffffff; }
+
+        @media (max-width:700px) {
+            #question-phase #question-text {
+                font-size:clamp(2rem, 9vw, 3rem);
+                line-height:1.1;
+                margin:22px auto 24px;
+                letter-spacing:-.025em;
+            }
+        }
+        body:not(.dark-mode) .question-category, body:not(.dark-mode) .wta-question-category { color:#b51b25; background:rgba(181,27,37,.07); border-color:rgba(181,27,37,.18); }
+
+        #game-screen .game-phase > .question-meta,
+        #game-screen .game-phase > #song-audio,
+        #game-screen .game-phase > #song-instruction {
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Difficulty selection stays as three strong cards, but the page around
+           them is now full-width rather than a small floating panel. */
+        #difficulty-phase .difficulty-grid {
+            width: min(1050px, 100%);
+            margin: 34px auto 0;
+            gap: 16px;
+        }
+
+        /* Leaderboard names must always be readable in LIGHT mode. */
+        #leaderboard-phase #leaderboard .leaderboard-row,
+        #final-phase #final-leaderboard .leaderboard-row {
+            color: #171717 !important;
+            background: #ffffff;
+            border-color: #eadcdc;
+        }
+
+        #leaderboard-phase #leaderboard .leaderboard-name,
+        #final-phase #final-leaderboard .leaderboard-name {
+            color: #171717 !important;
+            font-weight: 900;
+        }
+
+        #leaderboard-phase #leaderboard .leaderboard-position,
+        #final-phase #final-leaderboard .leaderboard-position {
+            color: #b5121b !important;
+            font-weight: 950;
+        }
+
+        #leaderboard-phase #leaderboard .leaderboard-points,
+        #final-phase #final-leaderboard .leaderboard-points {
+            color: #171717 !important;
+            font-weight: 900;
+        }
+
+        #leaderboard-phase #leaderboard .leaderboard-row.me,
+        #final-phase #final-leaderboard .leaderboard-row.me {
+            background: #fff5f5;
+            border-color: #edc8ca;
+        }
+
+
+        /* Host leaderboard action — fixed, centred and polished at the bottom of the screen. */
+        #leaderboard-phase #continue-button {
+            position: fixed !important;
+            left: 50% !important;
+            bottom: 28px !important;
+            transform: translateX(-50%) !important;
+            z-index: 1000;
+            width: min(360px, calc(100vw - 40px)) !important;
+            min-height: 58px;
+            margin: 0 !important;
+            padding: 0 28px;
+            border: 1px solid rgba(255,255,255,.12) !important;
+            border-radius: 16px !important;
+            background: linear-gradient(135deg, #e01824 0%, #b5121b 100%) !important;
+            color: #ffffff !important;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: .02em;
+            box-shadow: 0 12px 30px rgba(181,18,27,.30), 0 4px 12px rgba(0,0,0,.18);
+            transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+        }
+
+        #leaderboard-phase #continue-button::after {
+            content: "  →";
+            font-size: 19px;
+            vertical-align: -1px;
+        }
+
+        #leaderboard-phase #continue-button:hover:not(:disabled) {
+            transform: translateX(-50%) translateY(-3px) !important;
+            filter: brightness(1.06);
+            box-shadow: 0 16px 36px rgba(181,18,27,.36), 0 6px 16px rgba(0,0,0,.22);
+        }
+
+        #leaderboard-phase #continue-button:active:not(:disabled) {
+            transform: translateX(-50%) translateY(0) !important;
+            box-shadow: 0 8px 20px rgba(181,18,27,.28);
+        }
+
+        #leaderboard-phase #continue-button:disabled {
+            opacity: .72;
+            cursor: wait;
+        }
+
+        body.dark-mode #leaderboard-phase #continue-button {
+            border-color: rgba(255,255,255,.10) !important;
+            box-shadow: 0 14px 34px rgba(0,0,0,.55), 0 0 24px rgba(224,24,36,.16);
+        }
+
+        @media (max-width: 700px) {
+            #leaderboard-phase #continue-button {
+                bottom: 18px !important;
+                width: calc(100vw - 28px) !important;
+                min-height: 54px;
+                border-radius: 14px !important;
+            }
+        }
+
+        /* DARK MODE — black/red full-page game experience. */
+        body.dark-mode #game-screen {
+            background: #050505 !important;
+            color: #f5f5f5 !important;
+        }
+
+        body.dark-mode #game-screen > .game-container {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        body.dark-mode #game-screen .game-header {
+            background: #050505 !important;
+            color: #f5f5f5 !important;
+            border-bottom-color: #321014;
+        }
+
+        body.dark-mode #game-screen #game-score.score-bubble {
+            border-color: rgba(255, 77, 87, .28);
+            background: linear-gradient(135deg, #3a0d12 0%, #5a1219 100%);
+            color: #ffb8bd;
+            box-shadow: 0 8px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+        }
+
+        /* Dark mode: keep the game/lobby code header black rather than white. */
+        body.dark-mode #lobby-screen .top-bar {
+            background: #050505 !important;
+            color: #f5f5f5 !important;
+            border-color: #351015 !important;
+            box-shadow: none !important;
+        }
+
+        body.dark-mode #game-screen .game-phase {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        body.dark-mode #home-screen .logo,
+        body.dark-mode #home-screen .logo span {
+            color: #e01824 !important;
+            text-shadow: 0 4px 0 rgba(224,24,36,.10);
+        }
+
+        body.dark-mode #home-screen .tagline {
+            color: #c5c5c5 !important;
+        }
+
+        body.dark-mode #leaderboard-phase #leaderboard .leaderboard-row,
+        body.dark-mode #final-phase #final-leaderboard .leaderboard-row {
+            color: #ffffff !important;
+            background: #111111 !important;
+            border-color: #3d171b !important;
+        }
+
+        body.dark-mode #leaderboard-phase #leaderboard .leaderboard-name,
+        body.dark-mode #final-phase #final-leaderboard .leaderboard-name {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #leaderboard-phase #leaderboard .leaderboard-position,
+        body.dark-mode #final-phase #final-leaderboard .leaderboard-position {
+            color: #ff4d57 !important;
+        }
+
+        body.dark-mode #leaderboard-phase #leaderboard .leaderboard-points,
+        body.dark-mode #final-phase #final-leaderboard .leaderboard-points {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #leaderboard-phase #leaderboard .leaderboard-row.me,
+        body.dark-mode #final-phase #final-leaderboard .leaderboard-row.me {
+            background: #250a0d !important;
+            border-color: #b5121b !important;
+        }
+
+        body.dark-mode #difficulty-phase .difficulty {
+            background: #111318 !important;
+            border-color: #343842 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #difficulty-phase .difficulty strong {
+            color: #aeb4c0 !important;
+        }
+
+        body.dark-mode #difficulty-phase .difficulty.difficulty-selected {
+            border-color: #e01824 !important;
+            outline-color: #e01824 !important;
+            box-shadow: 0 0 0 4px rgba(224,24,36,.15), 0 12px 34px rgba(0,0,0,.4) !important;
+        }
+
+        body.dark-mode #question-phase #question-text,
+        body.dark-mode #difficulty-phase h1,
+        body.dark-mode #selection-phase h1,
+        body.dark-mode #leaderboard-phase h1,
+        body.dark-mode #gamble-phase h1,
+        body.dark-mode #final-phase h1 {
+            color: #ffffff !important;
+        }
+
+        @media (max-width: 700px) {
+            #game-screen > .game-container {
+                padding: 18px 14px 40px !important;
+            }
+
+            #game-screen .game-header {
+                margin-bottom: 18px;
+            }
+
+            #game-screen #game-score.score-bubble {
+                min-width: 108px;
+                padding: 8px 13px;
+                gap: 6px;
+            }
+
+            #game-screen #game-score .score-value { font-size: 1.05rem; }
+            #game-screen #game-score .score-label { font-size: .56rem; }
+
+
+
+            #game-screen .game-phase {
+                min-height: calc(100vh - 105px);
+                padding: 30px 4px 38px !important;
+            }
+        }
+    </style>
+
+
+    <style id="song-answer-selection-polish">
+        /* Song answers are shuffled by app.js. This local state is visible
+           only to the player who clicked the answer. */
+        #answer-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            width: 100%;
+        }
+
+        #answer-buttons .answer-button {
+            position: relative;
+            min-height: 72px;
+            overflow: hidden;
+        }
+
+        #answer-buttons .answer-button.song-local-selected {
+            border-color: #d59b00 !important;
+            background: #fff2c7 !important;
+            color: #5f4700 !important;
+            box-shadow: 0 0 0 3px rgba(213,155,0,.18);
+        }
+
+        #answer-buttons .song-local-pick {
+            display: block;
+            margin-top: 7px;
+            font-size: .68rem;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: .08em;
+            color: #9a6b00;
+        }
+
+        body.dark-mode #answer-buttons .answer-button.song-local-selected {
+            background: #3a2b05 !important;
+            border-color: #d9a900 !important;
+            color: #ffe9a0 !important;
+            box-shadow: 0 0 0 3px rgba(217,169,0,.18);
+        }
+
+        body.dark-mode #answer-buttons .song-local-pick {
+            color: #ffd65c;
+        }
+
+        @media (max-width: 600px) {
+            #answer-buttons {
+                grid-template-columns: 1fr;
+                gap: 11px;
+            }
+
+            #answer-buttons .answer-button {
+                min-height: 62px;
+            }
+        }
+    </style>
+
+
+    <style id="modern-volume-control">
+        /* Compact always-visible global volume control */
+        #volume-control {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            width: 116px;
+            height: 32px;
+            box-sizing: border-box;
+            padding: 0 9px;
+            border: 1px solid rgba(0,0,0,.10);
+            border-radius: 999px;
+            background: rgba(255,255,255,.88);
+            box-shadow: 0 5px 18px rgba(0,0,0,.10);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        #volume-icon {
+            width: 16px;
+            flex: 0 0 16px;
+            font-size: 14px;
+            line-height: 1;
+            text-align: center;
+            user-select: none;
+        }
+
+        #volume-slider {
+            width: 68px;
+            height: 18px;
+            margin: 0;
+            padding: 0;
+            cursor: pointer;
+            accent-color: var(--uq-red, #c8102e);
+        }
+
+        #volume-value {
+            display: none;
+        }
+
+        #volume-slider:focus-visible {
+            outline: 2px solid var(--uq-red, #c8102e);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        body.dark-mode #volume-control {
+            background: rgba(18,18,18,.88);
+            border-color: rgba(255,255,255,.12);
+            box-shadow: 0 5px 18px rgba(0,0,0,.35);
+        }
+
+        @media (max-width: 600px) {
+            #volume-control {
+                top: 10px;
+                left: 10px;
+                width: 104px;
+                height: 30px;
+                padding: 0 8px;
+                gap: 6px;
+            }
+            #volume-slider {
+                width: 62px;
+            }
+            #volume-icon {
+                font-size: 13px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div id="volume-control" aria-label="Global audio volume">
+    <span id="volume-icon" aria-hidden="true">🔊</span>
+    <input id="volume-slider" type="range" min="0" max="100" value="100" step="1" aria-label="Volume">
+    <span id="volume-value">100%</span>
+</div>
+
+<button id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+    <span class="theme-icon" aria-hidden="true">☾</span>
+</button>
+
+<div id="app">
+
+    <!-- HOME -->
+
+    <section id="home-screen" class="screen active">
+
+        <div class="hero">
+
+            <div class="logo">
+                THE <span>ULTIMATE QUIZ</span>
+            </div>
+
+            <p class="tagline">
+                Think fast. Score big.
+            </p>
+
+            <div class="home-buttons">
+
+                <button
+                    id="show-create"
+                    class="primary-button"
+                    type="button"
+                >
+                    Create Game
+                </button>
+
+                <button
+                    id="show-join"
+                    class="secondary-button"
+                    type="button"
+                >
+                    Join Game
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CREATE -->
+
+    <section id="create-screen" class="screen">
+
+        <div class="card">
+
+            <button
+                class="back-button"
+                id="back-create"
+                type="button"
+            >
+                ← Back
+            </button>
+
+            <h1>Create Game</h1>
+
+            <p class="muted">
+                Enter your name to create a new lobby.
+            </p>
+
+            <form id="create-form">
+
+                <label for="host-name">
+                    Your name
+                </label>
+
+                <input
+                    id="host-name"
+                    type="text"
+                    maxlength="20"
+                    autocomplete="off"
+                    required
+                    placeholder="Enter your name"
+                >
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Create Lobby
+                </button>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- JOIN -->
+
+    <section id="join-screen" class="screen">
+
+        <div class="card">
+
+            <button
+                class="back-button"
+                id="back-join"
+                type="button"
+            >
+                ← Back
+            </button>
+
+            <h1>Join Game</h1>
+
+            <p class="muted">
+                Enter the lobby code your host gave you.
+            </p>
+
+            <form id="join-form">
+
+                <label for="join-code">
+                    Game code
+                </label>
+
+                <input
+                    id="join-code"
+                    type="text"
+                    maxlength="5"
+                    autocomplete="off"
+                    placeholder="ABCDE"
+                    required
+                >
+
+                <label for="player-name">
+                    Your name
+                </label>
+
+                <input
+                    id="player-name"
+                    type="text"
+                    maxlength="20"
+                    autocomplete="off"
+                    placeholder="Enter your name"
+                    required
+                >
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Join Lobby
+                </button>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- LOBBY -->
+
+    <section id="lobby-screen" class="screen">
+
+        <div class="game-container">
+
+            <div class="top-bar">
+
+                <div>
+                    <span class="small-label">
+                        GAME CODE
+                    </span>
+
+                    <strong id="lobby-code">
+                        -----
+                    </strong>
+                </div>
+
+                <div class="lobby-copy-wrap">
+                    <button
+                        id="lobby-copy-button"
+                        type="button"
+                        aria-label="Copy game code"
+                    >
+                        COPY
+                    </button>
+                    <span id="lobby-copy-check" aria-hidden="true">✓</span>
+                </div>
+
+            </div>
+
+            <div class="lobby-header">
+
+                <p class="eyebrow">
+                    THE ULTIMATE QUIZ
+                </p>
+
+                <h1>
+                    Ready to play?
+                </h1>
+
+                <p class="muted">
+                    Share the game code with everyone.
+                </p>
+
+            </div>
+
+            <div class="players-card">
+
+                <div class="section-title">
+                    <span>Players</span>
+
+                    <span id="player-count">
+                        0
+                    </span>
+                </div>
+
+                <div id="players-list"></div>
+
+            </div>
+
+            <div id="lobby-host-controls" class="lobby-host-controls hidden">
+
+                <button
+                    id="customize-game-button"
+                    class="customize-button"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="customize-game-panel"
+                >
+                    <span>⚙ Customize Game</span>
+                    <span id="customize-game-chevron" aria-hidden="true">⌄</span>
+                </button>
+
+                <div id="customize-game-panel" class="customize-game-panel hidden">
+                    <div class="customize-panel-header">
+                        <div>
+                            <span class="customize-panel-eyebrow">GAME SETTINGS</span>
+                            <h2>Number of rounds</h2>
+                            <p>Choose between 8 and 16 rounds. There will always be exactly one Winner Takes All round.</p>
+                        </div>
+                        <span id="customize-round-summary" class="customize-round-summary">10 ROUNDS</span>
+                    </div>
+
+                    <div id="round-count-options" class="round-count-options" role="radiogroup" aria-label="Number of rounds">
+                        <button type="button" class="round-count-option" data-rounds="8">8</button>
+                                                <button type="button" class="round-count-option" data-rounds="10">10</button>
+                                                <button type="button" class="round-count-option" data-rounds="12">12</button>
+                                                <button type="button" class="round-count-option" data-rounds="14">14</button>
+                                                <button type="button" class="round-count-option" data-rounds="16">16</button>
+                    </div>
+
+                    <p id="customize-save-message" class="customize-save-message" aria-live="polite"></p>
+                </div>
+            </div>
+
+            <button
+                id="start-game-button"
+                class="primary-button hidden"
+                type="button"
+            >
+                Start Round 1
+            </button>
+
+            <button
+                id="lobby-home-button"
+                class="secondary-button lobby-home-button hidden"
+                type="button"
+            >
+                ← Home
+            </button>
+
+            <p
+                id="lobby-message"
+                class="status-message"
+            ></p>
+
+        </div>
+
+    </section>
+
+
+    <!-- GAME -->
+
+    <section id="game-screen" class="screen">
+
+        <div class="game-container">
+
+            <div class="game-header">
+
+                <div>
+                    <span class="small-label">
+                        ROUND
+                    </span>
+
+                    <strong id="round-number">
+                        1
+                    </strong>
+                </div>
+
+                <div id="game-score" class="score-bubble" aria-label="Current score">
+                    <span class="score-value">0</span>
+                    <span class="score-label">POINTS</span>
+                </div>
+
+            </div>
+
+
+            <!-- ROUND TYPE INTRO -->
+
+            <div id="round-intro-phase" class="game-phase hidden"></div>
+
+
+            <!-- PLAYER SELECTION -->
+
+            <div
+                id="selection-phase"
+                class="game-phase"
+            >
+
+                <div class="phase-icon">
+                    🎲
+                </div>
+
+                <p class="eyebrow">
+                    NEXT PLAYER
+                </p>
+
+                <h1>
+                    Selecting...
+                </h1>
+
+                <div
+                    id="selected-player-name"
+                    class="selected-player"
+                >
+                    -
+                </div>
+
+                <p
+                    id="selection-message"
+                    class="muted"
+                >
+                    The next player is being selected.
+                </p>
+
+            </div>
+
+
+            <!-- DIFFICULTY -->
+
+            <div
+                id="difficulty-phase"
+                class="game-phase hidden"
+            >
+
+                <p class="eyebrow">
+                    IT'S YOUR TURN
+                </p>
+
+                <h1>
+                    Choose your difficulty
+                </h1>
+
+                <p class="muted">
+                    Higher difficulty means more points.
+                </p>
+
+                <div class="difficulty-grid">
+
+                    <button
+                        class="difficulty easy"
+                        data-difficulty="easy"
+                        type="button"
+                    >
+                        <span>Easy</span>
+                        <strong>2 POINTS</strong>
+                    </button>
+
+                    <button
+                        class="difficulty medium"
+                        data-difficulty="medium"
+                        type="button"
+                    >
+                        <span>Medium</span>
+                        <strong>4 POINTS</strong>
+                    </button>
+
+                    <button
+                        class="difficulty hard"
+                        data-difficulty="hard"
+                        type="button"
+                    >
+                        <span>Hard</span>
+                        <strong>6 POINTS</strong>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- WINNER TAKES ALL -->
+
+            <div id="wta-phase" class="game-phase hidden">
+                <div class="wta-shell">
+                    <div class="wta-main">
+                        <div class="wta-heading-row">
+                            <div class="wta-heading-copy">
+                                <p class="wta-eyebrow">🏆 WINNER TAKES ALL</p>
+                            </div>
+                            <div class="wta-timer">
+                                <span class="wta-timer-label">TIME</span>
+                                <strong id="wta-timer">30</strong>
+                            </div>
+                        </div>
+
+                        <div id="wta-question-meta" class="wta-question-meta">QUESTION 1 • WTA POINTS ONLY</div>
+                        <h1 id="wta-question-text" class="wta-title">Loading your question…</h1>
+                        <div id="wta-question-category" class="wta-question-category">GENERAL KNOWLEDGE</div>
+                        <div id="wta-answer-buttons" class="answers"></div>
+                        <div id="wta-feedback" class="wta-feedback" aria-live="polite"></div>
+                    </div>
+
+                    <aside class="wta-mini-board" aria-label="Live Winner Takes All leaderboard">
+                        <div class="wta-board-top">
+                            <span class="wta-board-title">Live WTA Battle</span>
+                            <span class="wta-board-live"><span class="wta-live-dot"></span> LIVE</span>
+                        </div>
+                        <div class="wta-board-header">
+                            <span>#</span><span>PLAYER</span><span>WTA PTS</span>
+                        </div>
+                        <div id="wta-leaderboard-list"></div>
+                    </aside>
+                </div>
+            </div>
+
+
+            <!-- WINNER TAKES ALL REVEAL -->
+
+            <div id="wta-reveal-phase" class="game-phase hidden"></div>
+
+
+            <!-- QUESTION -->
+
+            <div
+                id="question-phase"
+                class="game-phase hidden"
+            >
+
+                <div class="question-meta">
+
+                    <span id="question-difficulty">
+                        EASY
+                    </span>
+
+                    <span id="question-category" class="question-category">
+                        GENERAL KNOWLEDGE
+                    </span>
+
+                    <span>
+                        <span id="timer">
+                            15
+                        </span>s
+                    </span>
+
+                </div>
+
+                <div id="round-type-banner" class="round-type-banner">🎯 CLASSIC QUESTION</div>
+
+                <h1 id="question-text">
+                    Question
+                </h1>
+
+                <p id="song-instruction" class="song-instruction hidden">Listen to the clip and choose your answer.</p>
+                <button id="song-play-button" class="song-play-button hidden" type="button">▶ Play Clip</button>
+
+                <div id="speed-instruction" class="speed-instruction hidden">
+                    Everyone answers at the same time. The faster you answer correctly, the more points you earn.
+                    <div class="speed-scoring" aria-label="Speed round scoring">
+                        <span>1ST = 6 POINTS</span>
+                        <span>2ND = 4 POINTS</span>
+                        <span>3RD = 2 POINTS</span>
+                        <span>ALL OTHER CORRECT = 1 POINT</span>
+                    </div>
+                </div>
+                <audio id="song-audio" class="hidden" preload="auto"></audio>
+
+                <div
+                    id="answer-buttons"
+                    class="answers"
+                ></div>
+
+                <div
+                    id="answer-result"
+                    class="answer-result"
+                    aria-live="polite"
+                ></div>
+
+                <div id="speed-response-times" class="speed-response-times hidden" aria-live="polite"></div>
+
+            </div>
+
+
+            <!-- LEADERBOARD -->
+
+            <div
+                id="leaderboard-phase"
+                class="game-phase hidden"
+            >
+
+                <p class="eyebrow">
+                    ROUND COMPLETE
+                </p>
+
+                <h1>
+                    Leaderboard
+                </h1>
+
+                <div id="leaderboard"></div>
+
+                <button
+                    id="continue-button"
+                    class="primary-button hidden"
+                    type="button"
+                >
+                    Start Next Round
+                </button>
+
+            </div>
+
+
+            <!-- GAMBLE -->
+
+            <div
+                id="gamble-phase"
+                class="game-phase hidden"
+            >
+
+                <p class="eyebrow">
+                    BONUS GAMBLE
+                </p>
+
+                <h1>
+                    Gamble your points?
+                </h1>
+
+                <p class="muted">
+                    A random bonus appears once during the game. Choose your stake before you spin.
+                </p>
+
+                <div class="gamble-stake">
+                    <label for="gamble-stake">Points to gamble</label>
+                    <input
+                        id="gamble-stake"
+                        type="number"
+                        min="1"
+                        value="1"
+                        inputmode="numeric"
+                    >
+                    <div id="multiplier-info" aria-live="polite">1 point staked · 2× multiplier if you hit</div>
+                </div>
+
+                <div class="slot-machine">
+
+                    <div class="slot-reels">
+
+                        <div id="reel-1">
+                            🍒
+                        </div>
+
+                        <div id="reel-2">
+                            ⭐
+                        </div>
+
+                        <div id="reel-3">
+                            💎
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="slot-result"
+                        class="slot-result"
+                        aria-live="polite"
+                    >
+                        Choose what to do.
+                    </div>
+
+                </div>
+
+                <div class="gamble-buttons">
+
+                    <button
+                        id="gamble-button"
+                        class="gamble-button"
+                        type="button"
+                    >
+                        🎰 Spin Bonus
+                    </button>
+
+                    <button
+                        id="keep-button"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        ✓ Ready Up
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- FINAL -->
+
+            <div
+                id="final-phase"
+                class="game-phase hidden"
+            >
+
+                <div class="phase-icon">
+                    🏆
+                </div>
+
+                <p class="eyebrow">
+                    GAME OVER
+                </p>
+
+                <h1>
+                    Final Results
+                </h1>
+
+                <div id="final-leaderboard"></div>
+
+                <button
+                    id="new-round-button"
+                    class="primary-button"
+                    type="button"
+                >
+                    Play Again
+                </button>
+
+                <button
+                    id="final-home-button"
+                    class="secondary-button final-home-button"
+                    type="button"
+                >
+                    ← Home
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script>
+(function () {
+    const toggle = document.getElementById("theme-toggle");
+    if (!toggle) return;
+
+    const icon = toggle.querySelector(".theme-icon");
+    const savedTheme = localStorage.getItem("ultimateQuizTheme");
+    const dark = savedTheme === "dark";
+
+    function applyTheme(isDark) {
+        document.body.classList.toggle("dark-mode", isDark);
+        if (icon) icon.textContent = isDark ? "☀" : "☾";
+        toggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+        toggle.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
+        localStorage.setItem("ultimateQuizTheme", isDark ? "dark" : "light");
+    }
+
+    applyTheme(dark);
+
+    toggle.addEventListener("click", function () {
+        applyTheme(!document.body.classList.contains("dark-mode"));
+    });
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.difficulty.difficulty-selected {
+    outline: 3px solid rgba(255,255,255,0.95);
+    outline-offset: 2px;
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.12), 0 10px 30px rgba(0,0,0,0.22);
+    opacity: 1 !important;
+    filter: brightness(1.08);
+}
+.difficulty.difficulty-selected::after {
+    content: "✓ SELECTED";
+    display: block;
+    margin-top: 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+</style>
+
+<script src="supabase.js"></script>
+<script src="questions.js"></script>
+<script src="question_types.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
