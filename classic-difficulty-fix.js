@@ -1,29 +1,88 @@
 // ============================================================
 // CLASSIC DIFFICULTY SELECTION FIX
 // ============================================================
-// Keeps Classic difficulty selection independent from the older
-// chooseDifficulty implementation. The helper and Supabase client
-// references are defined here so this file works with the current build.
+// Classic questions live in questions.js. The main app and this patch
+// must work even if the browser has an older cached copy of that file or
+// the top-level QUESTIONS const is not exposed on window.
 
 (function installClassicDifficultyFix() {
+    let questionBankPromise = null;
+
+    async function loadClassicQuestionBank() {
+        // In a normal classic script, QUESTIONS is available as a global
+        // lexical binding. Use it when it is already populated.
+        try {
+            if (typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS) && QUESTIONS.length) {
+                return QUESTIONS;
+            }
+        } catch (error) {
+            console.warn("Could not read the normal Classic question bank:", error);
+        }
+
+        // Fallback: fetch a fresh copy so GitHub Pages/browser caching cannot
+        // leave Classic with an old question bank. questions.js is generated
+        // as: const QUESTIONS = [ ... ];
+        if (!questionBankPromise) {
+            const url = `questions.js?classic-cache-bust=${Date.now()}`;
+            questionBankPromise = fetch(url, { cache: "no-store" })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Could not load questions.js (${response.status})`);
+                    }
+                    return response.text();
+                })
+                .then(source => {
+                    const match = source.match(/const\s+QUESTIONS\s*=\s*(\[[\s\S]*\])\s*;?\s*$/);
+                    if (!match) {
+                        throw new Error("Could not find the QUESTIONS array in questions.js");
+                    }
+
+                    const parsed = JSON.parse(match[1]);
+                    if (!Array.isArray(parsed)) {
+                        throw new Error("Classic question bank is not an array");
+                    }
+
+                    return parsed;
+                })
+                .catch(error => {
+                    questionBankPromise = null;
+                    throw error;
+                });
+        }
+
+        return questionBankPromise;
+    }
+
+    async function getClassicQuestionsForDifficulty(difficulty) {
+        const bank = await loadClassicQuestionBank();
+        const normalized = String(difficulty || "").trim().toLowerCase();
+
+        return bank.filter(question =>
+            String(question?.difficulty || "").trim().toLowerCase() === normalized
+        );
+    }
+
     const install = () => {
         if (typeof chooseDifficulty !== "function") return false;
 
-        // questions.js declares QUESTIONS in the global script scope.
-        // Use the global binding directly rather than window.QUESTIONS,
-        // because a top-level const is not exposed as a window property.
-        if (typeof getQuestionsForDifficulty !== "function") {
-            window.getQuestionsForDifficulty = function getQuestionsForDifficulty(difficulty) {
-                if (typeof QUESTIONS === "undefined" || !Array.isArray(QUESTIONS)) {
-                    return [];
+        // Always replace the old helper so Classic uses the same reliable
+        // question-bank loading path regardless of which app version loaded.
+        window.getQuestionsForDifficulty = function getQuestionsForDifficulty(difficulty) {
+            // Keep the public helper synchronous for compatibility with any
+            // other code that may call it. If the normal global bank exists,
+            // return its filtered questions immediately.
+            try {
+                if (typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS)) {
+                    const normalized = String(difficulty || "").trim().toLowerCase();
+                    return QUESTIONS.filter(question =>
+                        String(question?.difficulty || "").trim().toLowerCase() === normalized
+                    );
                 }
-
-                const normalized = String(difficulty || "").toLowerCase();
-                return QUESTIONS.filter(question =>
-                    String(question?.difficulty || "").toLowerCase() === normalized
-                );
-            };
-        }
+            } catch (error) {
+                console.warn("Could not use the normal Classic question bank:", error);
+            }
+            return [];
+        };
 
         window.chooseDifficulty = async function fixedChooseDifficulty(difficulty) {
             if (!game) return;
@@ -34,10 +93,17 @@
             if (!isCurrentPlayer) return;
             if (!POINTS[difficulty]) return;
 
-            const questions = window.getQuestionsForDifficulty(difficulty);
+            let questions;
+            try {
+                questions = await getClassicQuestionsForDifficulty(difficulty);
+            } catch (error) {
+                console.error("Could not load Classic questions:", error);
+                alert("Could not load the Classic questions. Please refresh the page and try again.");
+                return;
+            }
 
-            if (!questions?.length) {
-                alert("There are no questions for this difficulty.");
+            if (!questions.length) {
+                alert(`There are no Classic questions for ${difficulty}.`);
                 return;
             }
 
