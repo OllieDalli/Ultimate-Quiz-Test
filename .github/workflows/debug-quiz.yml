@@ -1,22 +1,71 @@
-name: Debug quiz selection
+name: Fix quiz difficulty loading
 on:
   push:
   workflow_dispatch:
 jobs:
-  inspect:
+  fix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect
+      - name: Patch Classic and WTA difficulty selection
+        shell: bash
         run: |
-          echo '--- CLASSIC SELECTION ---'
-          sed -n '2440,2645p' app.js
-          echo '--- WTA SELECTION ---'
-          grep -nEi 'function .*Wta|function .*wta|WTA_QUESTIONS|wtaQuestions|getRandomWta|wta.*question|question.*wta' app.js question_types.js wta-fix.js | tail -250 || true
-          echo '--- WTA FIX ---'
-          cat wta-fix.js
-          echo '--- QUESTIONS HEAD/HELPERS ---'
-          sed -n '1,80p' questions.js
-          tail -80 questions.js
-          echo '--- QUESTION TYPES TAIL ---'
-          tail -100 question_types.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          app = Path('app.js')
+          text = app.read_text(encoding='utf-8')
+
+          marker = 'function chooseDifficulty(difficulty) {'
+          helper = '''function normalizeQuizDifficulty(value) {\n    const raw = String(value ?? "").trim().toLowerCase();\n    if (raw === "1" || raw === "easy" || raw === "easiest") return "easy";\n    if (raw === "2" || raw === "medium" || raw === "med") return "medium";\n    if (raw === "3" || raw === "hard" || raw === "difficult") return "hard";\n    return raw;\n}\n\n'''
+          if 'function normalizeQuizDifficulty(value)' not in text:
+              if marker not in text:
+                  raise SystemExit('Could not find chooseDifficulty()')
+              text = text.replace(marker, helper + marker, 1)
+
+          old = '''    const questions =\n        getQuestionsForDifficulty(\n            difficulty\n        );'''
+          new = '''    const requestedDifficulty = normalizeQuizDifficulty(difficulty);\n    const questions =\n        (Array.isArray(QUESTIONS) ? QUESTIONS : []).filter(question =>\n            normalizeQuizDifficulty(question?.difficulty) === requestedDifficulty\n        );'''
+          if old not in text:
+              raise SystemExit('Could not find Classic question lookup')
+          text = text.replace(old, new, 1)
+
+          text = text.replace('difficulty: difficulty,\n                answer: "",', 'difficulty: requestedDifficulty,\n                answer: "",', 1)
+          text = text.replace('current_difficulty: difficulty,\n                current_question_id:', 'current_difficulty: requestedDifficulty,\n                current_question_id:', 1)
+          text = text.replace('current_difficulty: difficulty,\n        current_question_id:', 'current_difficulty: requestedDifficulty,\n        current_question_id:', 1)
+
+          old_wta = '''    return allQuestions.filter(question =>\n        question && (question.difficulty === "easy" || question.difficulty === "medium")\n    );'''
+          new_wta = '''    return allQuestions.filter(question => {\n        const difficulty = normalizeQuizDifficulty(question?.difficulty);\n        return difficulty === "easy" || difficulty === "medium";\n    });'''
+          if old_wta not in text:
+              raise SystemExit('Could not find WTA question lookup')
+          text = text.replace(old_wta, new_wta, 1)
+
+          app.write_text(text, encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          for filename in ['supabase.js', 'questions.js', 'question_types.js', 'app.js']:
+              html = re.sub(rf'<script src="{re.escape(filename)}(?:\\?v=[^"]+)?"></script>', f'<script src="{filename}?v=20260917-1"></script>', html)
+          index.write_text(html, encoding='utf-8')
+          PY
+
+          node --check app.js
+          node --check questions.js
+          echo '--- PATCHED CLASSIC LOOKUP ---'
+          grep -n -A14 -B4 'requestedDifficulty' app.js | head -80
+          echo '--- PATCHED WTA LOOKUP ---'
+          grep -n -A8 -B3 'return allQuestions.filter' app.js | tail -20
+          echo '--- SCRIPT TAGS ---'
+          grep -n '<script' index.html | tail -10
+
+      - name: Commit and push fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js index.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "Fix Classic and WTA difficulty selection [skip ci]"
+          git push
