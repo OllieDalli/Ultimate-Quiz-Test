@@ -9,14 +9,17 @@
     const install = () => {
         if (typeof chooseDifficulty !== "function") return false;
 
-        // The current question bank is exposed as QUESTIONS by questions.js.
-        // Keep this helper global because the fixed difficulty handler uses it.
-        if (typeof window.getQuestionsForDifficulty !== "function") {
+        // questions.js declares QUESTIONS in the global script scope.
+        // Use the global binding directly rather than window.QUESTIONS,
+        // because a top-level const is not exposed as a window property.
+        if (typeof getQuestionsForDifficulty !== "function") {
             window.getQuestionsForDifficulty = function getQuestionsForDifficulty(difficulty) {
-                if (!Array.isArray(window.QUESTIONS)) return [];
+                if (typeof QUESTIONS === "undefined" || !Array.isArray(QUESTIONS)) {
+                    return [];
+                }
 
                 const normalized = String(difficulty || "").toLowerCase();
-                return window.QUESTIONS.filter(question =>
+                return QUESTIONS.filter(question =>
                     String(question?.difficulty || "").toLowerCase() === normalized
                 );
             };
