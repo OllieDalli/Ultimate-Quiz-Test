@@ -17,7 +17,7 @@ jobs:
           app = Path('app.js')
           text = app.read_text(encoding='utf-8')
 
-          marker = 'function chooseDifficulty(difficulty) {'
+          marker = 'async function chooseDifficulty(difficulty) {'
           helper = '''function normalizeQuizDifficulty(value) {\n    const raw = String(value ?? "").trim().toLowerCase();\n    if (raw === "1" || raw === "easy" || raw === "easiest") return "easy";\n    if (raw === "2" || raw === "medium" || raw === "med") return "medium";\n    if (raw === "3" || raw === "hard" || raw === "difficult") return "hard";\n    return raw;\n}\n\n'''
           if 'function normalizeQuizDifficulty(value)' not in text:
               if marker not in text:
@@ -70,4 +70,4 @@ jobs:
           git commit -m "Fix Classic and WTA difficulty selection [skip ci]"
           git push
 
-# trigger fix run
+# trigger fix run 2
