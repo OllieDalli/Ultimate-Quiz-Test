@@ -7,9 +7,3 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
 );
-
-// Load the expanded Classic question bank before the following scripts run.
-document.write('<script src="question_expansion.js"><\\/script>');
-document.write('<script src="question_expansion_2.js"><\\/script>');
-document.write('<script src="question_expansion_3.js"><\\/script>');
-document.write('<script src="question_expansion_4.js"><\\/script>');
