@@ -1,0 +1,107 @@
+name: Finalize Classic Question Bank
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild Classic questions.js
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          import re
+
+          SOURCE_COMMIT = "88de80b997a0e7e9a4d5cb65f8adce0f7cca9fa0"
+
+          def git_show(path):
+              return subprocess.check_output(
+                  ["git", "show", f"{SOURCE_COMMIT}:{path}"],
+                  text=True,
+                  encoding="utf-8"
+              )
+
+          def extract_array(source, marker):
+              marker_pos = source.index(marker)
+              open_pos = source.index("[", marker_pos)
+              depth = 0
+              in_string = False
+              escaped = False
+
+              for i in range(open_pos, len(source)):
+                  ch = source[i]
+                  if in_string:
+                      if escaped:
+                          escaped = False
+                      elif ch == "\\":
+                          escaped = True
+                      elif ch == '"':
+                          in_string = False
+                      continue
+
+                  if ch == '"':
+                      in_string = True
+                  elif ch == "[":
+                      depth += 1
+                  elif ch == "]":
+                      depth -= 1
+                      if depth == 0:
+                          return source[open_pos + 1:i], open_pos, i
+
+              raise RuntimeError(f"Could not find matching array for {marker}")
+
+          base = git_show("questions.js")
+          base_content, base_open, base_close = extract_array(base, "const QUESTIONS")
+
+          extras = []
+          for filename in [
+              "question_expansion.js",
+              "question_expansion_2.js",
+              "question_expansion_3.js",
+              "question_expansion_4.js",
+          ]:
+              extra_source = git_show(filename)
+              extra_content, _, _ = extract_array(extra_source, "const EXPANDED_CLASSIC_QUESTIONS")
+              extras.append(extra_content.strip())
+
+          combined_content = base_content.strip() + "," + ",".join(extras)
+          rebuilt = base[:base_open + 1] + combined_content + base[base_close:]
+
+          rebuilt = re.sub(
+              r"function getQuestionsForDifficulty\(difficulty\)\s*\{[\s\S]*?\n\}",
+              "function getQuestionsForDifficulty(difficulty) {\n    const normalized = String(difficulty || \"\").trim().toLowerCase();\n    return QUESTIONS.filter(question =>\n        String(question?.difficulty || \"\").trim().toLowerCase() === normalized\n    );\n}",
+              rebuilt,
+              count=1,
+          )
+
+          Path("questions.js").write_text(rebuilt, encoding="utf-8")
+
+          for filename in [
+              "question_expansion.js",
+              "question_expansion_2.js",
+              "question_expansion_3.js",
+              "question_expansion_4.js",
+              "classic-difficulty-fix.js",
+              ".github/workflows/finalize-classic.yml",
+          ]:
+              path = Path(filename)
+              if path.exists():
+                  path.unlink()
+
+      - name: Commit final bank
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Finalize single Classic question bank"
+          git push
