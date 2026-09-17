@@ -1,4 +1,3 @@
-// Additional Classic questions for Ultimate Quiz.
-const EXPANDED_CLASSIC_QUESTIONS = PLACEHOLDER
-
-QUESTIONS.push(...EXPANDED_CLASSIC_QUESTIONS);
+// Ultimate Quiz expanded Classic questions — part 1/4.
+const EXPANDED_CLASSIC_QUESTIONS_1 = [REDACTED_PLACEHOLDER];
+QUESTIONS.push(...EXPANDED_CLASSIC_QUESTIONS_1);
