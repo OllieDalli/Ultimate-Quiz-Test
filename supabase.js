@@ -24,10 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 0);
 
     // Classic difficulty selection fix. This is loaded after app.js so it
-    // can safely replace the original difficulty handler.
+    // can safely replace the original difficulty handler. The version query
+    // also prevents GitHub Pages/browser caching from serving the old patch.
     setTimeout(() => {
         const script = document.createElement("script");
-        script.src = "classic-difficulty-fix.js?v=1";
+        script.src = "classic-difficulty-fix.js?v=2";
         script.async = false;
         document.head.appendChild(script);
     }, 0);
