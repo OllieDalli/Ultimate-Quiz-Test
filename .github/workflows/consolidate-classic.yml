@@ -19,31 +19,26 @@ jobs:
           from pathlib import Path
           import json
 
-          def extract_array(path, name):
+          def extract_array(path):
               source = Path(path).read_text(encoding="utf-8")
-              marker = f"const {name} ="
-              start = source.find(marker)
-              if start == -1:
-                  raise RuntimeError(f"Could not find {marker} in {path}")
-              payload = source[start + len(marker):].strip()
-              if payload.endswith(";"):
-                  payload = payload[:-1].rstrip()
-              value = json.loads(payload)
+              first = source.find("[")
+              last = source.rfind("]")
+              if first == -1 or last <= first:
+                  raise RuntimeError(f"Could not find a JSON array in {path}")
+              value = json.loads(source[first:last + 1])
               if not isinstance(value, list):
-                  raise RuntimeError(f"{name} is not an array")
+                  raise RuntimeError(f"{path} does not contain an array")
               return value
 
-          questions = extract_array("questions.js", "QUESTIONS")
+          questions = extract_array("questions.js")
 
-          expansion_files = [
-              ("question_expansion.js", "EXPANDED_CLASSIC_QUESTIONS_1"),
-              ("question_expansion_2.js", "EXPANDED_CLASSIC_QUESTIONS_2"),
-              ("question_expansion_3.js", "EXPANDED_CLASSIC_QUESTIONS_3"),
-              ("question_expansion_4.js", "EXPANDED_CLASSIC_QUESTIONS_4"),
-          ]
-
-          for path, name in expansion_files:
-              questions.extend(extract_array(path, name))
+          for path in [
+              "question_expansion.js",
+              "question_expansion_2.js",
+              "question_expansion_3.js",
+              "question_expansion_4.js",
+          ]:
+              questions.extend(extract_array(path))
 
           ids = [q.get("id") for q in questions]
           if any(not item for item in ids):
@@ -69,7 +64,12 @@ jobs:
 
           Path("questions.js").write_text(output, encoding="utf-8")
 
-          for path, _ in expansion_files:
+          for path in [
+              "question_expansion.js",
+              "question_expansion_2.js",
+              "question_expansion_3.js",
+              "question_expansion_4.js",
+          ]:
               Path(path).unlink()
 
       - name: Commit consolidated bank
