@@ -10,3 +10,16 @@ const supabaseClient = window.supabase.createClient(
 
 // Load the expanded song library before the quiz startup runs.
 document.write('<script src="song_expansion.js"><\\/script>');
+
+// Load the WTA recovery patch after app.js has executed. app.js registers
+// its DOMContentLoaded handler after this file, so a zero-delay injection
+// guarantees the patch sees the completed WTA functions without blocking
+// the normal quiz startup.
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        const script = document.createElement("script");
+        script.src = "wta-fix.js?v=2";
+        script.async = false;
+        document.head.appendChild(script);
+    }, 0);
+});
