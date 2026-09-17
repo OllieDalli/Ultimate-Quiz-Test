@@ -9,15 +9,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Inspect
         run: |
-          echo '--- FILES ---'
-          find . -maxdepth 2 -type f | sort
-          echo '--- APP MATCHES ---'
-          grep -nEi 'difficulty|classic|wta|question' app.js | head -300 || true
-          echo '--- QUESTION TYPES ---'
-          grep -nEi 'difficulty|classic|wta|question' question_types.js | head -300 || true
-          echo '--- SUPABASE ---'
-          grep -nEi 'difficulty|classic|wta|question|script' supabase.js | head -300 || true
-          echo '--- QUESTIONS HELPERS / SAMPLE ---'
-          grep -nEi 'getQuestionsForDifficulty|getQuestionsForCategory|difficulty|category' questions.js | tail -100 || true
-          echo '--- WTA FILES ---'
-          for f in *wta* *WTA*; do [ -f "$f" ] && { echo "### $f"; grep -nEi 'difficulty|question|WTA|wta' "$f" | head -300 || true; }; done
+          echo '--- CLASSIC SELECTION ---'
+          sed -n '2440,2645p' app.js
+          echo '--- WTA SELECTION ---'
+          grep -nEi 'function .*Wta|function .*wta|WTA_QUESTIONS|wtaQuestions|getRandomWta|wta.*question|question.*wta' app.js question_types.js wta-fix.js | tail -250 || true
+          echo '--- WTA FIX ---'
+          cat wta-fix.js
+          echo '--- QUESTIONS HEAD/HELPERS ---'
+          sed -n '1,80p' questions.js
+          tail -80 questions.js
+          echo '--- QUESTION TYPES TAIL ---'
+          tail -100 question_types.js
