@@ -7,3 +7,6 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
 );
+
+// Load the expanded song library before the quiz startup runs.
+document.write('<script src="song_expansion.js"><\\/script>');
