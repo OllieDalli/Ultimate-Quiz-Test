@@ -5,15 +5,14 @@
  * Run:
  *   node validate_questions.js
  *
- * The script deliberately fails with a non-zero exit code if the question
- * bank contains a structural problem. Run it before publishing a new
- * questions.js file.
+ * The validator checks the base bank plus all expanded Classic question files.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const file = path.join(__dirname, 'questions.js');
+const expansionFiles = ['question_expansion.js','question_expansion_2.js','question_expansion_3.js','question_expansion_4.js'].map(name => path.join(__dirname, name));
 const source = fs.readFileSync(file, 'utf8');
 const match = source.match(/const\s+QUESTIONS\s*=\s*(\[[\s\S]*\]);/);
 
@@ -25,21 +24,22 @@ if (!match) {
 let questions;
 try {
     questions = JSON.parse(match[1]);
+    for (const expansionFile of expansionFiles) {
+        if (!fs.existsSync(expansionFile)) continue;
+        const expansionSource = fs.readFileSync(expansionFile, 'utf8');
+        const expansionMatch = expansionSource.match(/const\s+EXPANDED_CLASSIC_QUESTIONS(?:_\d+)?\s*=\s*(\[[\s\S]*\]);/);
+        if (expansionMatch) questions.push(...JSON.parse(expansionMatch[1]));
+    }
 } catch (error) {
-    console.error('❌ questions.js contains invalid JSON:', error.message);
+    console.error('❌ Question bank contains invalid JSON:', error.message);
     process.exit(1);
 }
 
 const allowedDifficulties = new Set(['easy', 'medium', 'hard']);
 const requiredCategories = new Set([
-    'Gaming',
-    'Music',
-    'TV and Film',
-    'History',
-    'General Knowledge',
-    'Science',
-    'Geography',
-    'Maths'
+    'Gaming', 'Music', 'TV and Film', 'History', 'General Knowledge',
+    'Science', 'Geography', 'Maths', 'Sport', 'Food & Drink',
+    'Animals & Nature', '90s & 00s Nostalgia'
 ]);
 
 const errors = [];
@@ -88,9 +88,7 @@ if (!Array.isArray(questions) || questions.length === 0) {
         errors.push(`${where}: missing category.`);
     } else {
         categoryCounts.set(q.category, (categoryCounts.get(q.category) || 0) + 1);
-        if (!requiredCategories.has(q.category)) {
-            warnings.push(`${where}: new/unrecognised category "${q.category}".`);
-        }
+        if (!requiredCategories.has(q.category)) warnings.push(`${where}: new/unrecognised category "${q.category}".`);
     }
 
     if (typeof q.question !== 'string' || !q.question.trim()) {
@@ -110,26 +108,13 @@ if (!Array.isArray(questions) || questions.length === 0) {
     }
 
     const normalisedAnswers = q.answers.map(normalise);
-    const duplicateAnswers = normalisedAnswers.filter((answer, i) =>
-        normalisedAnswers.indexOf(answer) !== i
-    );
-
-    if (duplicateAnswers.length) {
-        errors.push(`${where}: answer choices are not all unique.`);
-    }
-
-    if (q.answers.some(answer => typeof answer !== 'string' || !answer.trim())) {
-        errors.push(`${where}: answer choices must all be non-empty strings.`);
-    }
+    const duplicateAnswers = normalisedAnswers.filter((answer, i) => normalisedAnswers.indexOf(answer) !== i);
+    if (duplicateAnswers.length) errors.push(`${where}: answer choices are not all unique.`);
+    if (q.answers.some(answer => typeof answer !== 'string' || !answer.trim())) errors.push(`${where}: answer choices must all be non-empty strings.`);
 
     const correctMatches = q.answers.filter(answer => answer === q.correct).length;
-    if (correctMatches !== 1) {
-        errors.push(`${where}: correct answer must match exactly one answer choice.`);
-    }
-
-    if (typeof q.correct !== 'string' || !q.correct.trim()) {
-        errors.push(`${where}: correct answer is empty.`);
-    }
+    if (correctMatches !== 1) errors.push(`${where}: correct answer must match exactly one answer choice.`);
+    if (typeof q.correct !== 'string' || !q.correct.trim()) errors.push(`${where}: correct answer is empty.`);
 });
 
 console.log('');
@@ -140,15 +125,11 @@ console.log('Duplicate question text is reported as a warning so the game can st
 console.log('');
 
 console.log('Categories:');
-for (const category of [...requiredCategories].sort()) {
-    console.log(`  ${category.padEnd(20)} ${categoryCounts.get(category) || 0}`);
-}
+for (const category of [...requiredCategories].sort()) console.log(`  ${category.padEnd(20)} ${categoryCounts.get(category) || 0}`);
 
 console.log('');
 console.log('Difficulty:');
-for (const difficulty of ['easy', 'medium', 'hard']) {
-    console.log(`  ${difficulty.padEnd(20)} ${difficultyCounts.get(difficulty) || 0}`);
-}
+for (const difficulty of ['easy', 'medium', 'hard']) console.log(`  ${difficulty.padEnd(20)} ${difficultyCounts.get(difficulty) || 0}`);
 
 console.log('');
 if (warnings.length) {
