@@ -84,3 +84,5 @@ jobs:
           git add questions.js question_expansion.js question_expansion_2.js question_expansion_3.js question_expansion_4.js
           git diff --cached --quiet || git commit -m "Merge all Classic questions into one file"
           git push
+
+# One-time consolidation workflow; remove after the merge is confirmed.
