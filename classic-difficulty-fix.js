@@ -1,15 +1,26 @@
 // ============================================================
 // CLASSIC DIFFICULTY SELECTION FIX
 // ============================================================
-// The previous Classic flow reserved a blank answer row before moving
-// into the question phase. That extra write could make difficulty selection
-// appear to do nothing. A question is now selected from unused questions,
-// the game is moved to the question phase, and the answer row is created
-// only when the player actually answers.
+// Keeps Classic difficulty selection independent from the older
+// chooseDifficulty implementation. The helper and Supabase client
+// references are defined here so this file works with the current build.
 
 (function installClassicDifficultyFix() {
     const install = () => {
         if (typeof chooseDifficulty !== "function") return false;
+
+        // The current question bank is exposed as QUESTIONS by questions.js.
+        // Keep this helper global because the fixed difficulty handler uses it.
+        if (typeof window.getQuestionsForDifficulty !== "function") {
+            window.getQuestionsForDifficulty = function getQuestionsForDifficulty(difficulty) {
+                if (!Array.isArray(window.QUESTIONS)) return [];
+
+                const normalized = String(difficulty || "").toLowerCase();
+                return window.QUESTIONS.filter(question =>
+                    String(question?.difficulty || "").toLowerCase() === normalized
+                );
+            };
+        }
 
         window.chooseDifficulty = async function fixedChooseDifficulty(difficulty) {
             if (!game) return;
@@ -20,7 +31,7 @@
             if (!isCurrentPlayer) return;
             if (!POINTS[difficulty]) return;
 
-            const questions = getQuestionsForDifficulty(difficulty);
+            const questions = window.getQuestionsForDifficulty(difficulty);
 
             if (!questions?.length) {
                 alert("There are no questions for this difficulty.");
@@ -28,7 +39,7 @@
             }
 
             const { data: usedAnswers, error: usedAnswersError } =
-                await supabaseClient
+                await supabase
                     .from("answers")
                     .select("question_id")
                     .eq("game_id", game.id);
@@ -64,7 +75,7 @@
             const questionStartedAt = new Date().toISOString();
 
             const { data: updatedGame, error: difficultyError } =
-                await supabaseClient
+                await supabase
                     .from("games")
                     .update({
                         phase: "question",
