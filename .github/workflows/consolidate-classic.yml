@@ -18,64 +18,78 @@ jobs:
         run: |
           from pathlib import Path
           import json
+          import traceback
 
-          def extract_array(path):
-              source = Path(path).read_text(encoding="utf-8")
-              first = source.find("[")
-              last = source.rfind("]")
-              if first == -1 or last <= first:
-                  raise RuntimeError(f"Could not find a JSON array in {path}")
-              value = json.loads(source[first:last + 1])
-              if not isinstance(value, list):
-                  raise RuntimeError(f"{path} does not contain an array")
-              return value
+          try:
+              def extract_array(path):
+                  source = Path(path).read_text(encoding="utf-8")
+                  first = source.find("[")
+                  last = source.rfind("]")
+                  if first == -1 or last <= first:
+                      raise RuntimeError(f"Could not find a JSON array in {path}")
+                  payload = source[first:last + 1]
+                  value = json.loads(payload)
+                  if not isinstance(value, list):
+                      raise RuntimeError(f"{path} does not contain an array")
+                  return value
 
-          questions = extract_array("questions.js")
+              questions = extract_array("questions.js")
+              counts = {"questions.js": len(questions)}
 
-          for path in [
-              "question_expansion.js",
-              "question_expansion_2.js",
-              "question_expansion_3.js",
-              "question_expansion_4.js",
-          ]:
-              questions.extend(extract_array(path))
+              for path in [
+                  "question_expansion.js",
+                  "question_expansion_2.js",
+                  "question_expansion_3.js",
+                  "question_expansion_4.js",
+              ]:
+                  extra = extract_array(path)
+                  counts[path] = len(extra)
+                  questions.extend(extra)
 
-          ids = [q.get("id") for q in questions]
-          if any(not item for item in ids):
-              raise RuntimeError("Every Classic question must have an id")
-          if len(ids) != len(set(ids)):
-              raise RuntimeError("Duplicate Classic question ids found")
+              ids = [q.get("id") for q in questions]
+              if any(not item for item in ids):
+                  raise RuntimeError("Every Classic question must have an id")
+              if len(ids) != len(set(ids)):
+                  raise RuntimeError("Duplicate Classic question ids found")
 
-          output = (
-              "// ============================================================\n"
-              "// THE ULTIMATE QUIZ — CLASSIC QUESTION BANK\n"
-              "// All Classic questions are kept in this single file.\n"
-              "// ============================================================\n\n"
-              "const QUESTIONS = "
-              + json.dumps(questions, ensure_ascii=False, separators=(",", ":"))
-              + ";\n\n"
-              "function getQuestionsForDifficulty(difficulty) {\n"
-              "    const normalized = String(difficulty || \"\").trim().toLowerCase();\n"
-              "    return QUESTIONS.filter(question =>\n"
-              "        String(question?.difficulty || \"\").trim().toLowerCase() === normalized\n"
-              "    );\n"
-              "}\n"
-          )
+              output = (
+                  "// ============================================================\n"
+                  "// THE ULTIMATE QUIZ — CLASSIC QUESTION BANK\n"
+                  "// All Classic questions are kept in this single file.\n"
+                  "// ============================================================\n\n"
+                  "const QUESTIONS = "
+                  + json.dumps(questions, ensure_ascii=False, separators=(",", ":"))
+                  + ";\n\n"
+                  "function getQuestionsForDifficulty(difficulty) {\n"
+                  "    const normalized = String(difficulty || \"\").trim().toLowerCase();\n"
+                  "    return QUESTIONS.filter(question =>\n"
+                  "        String(question?.difficulty || \"\").trim().toLowerCase() === normalized\n"
+                  "    );\n"
+                  "}\n"
+              )
 
-          Path("questions.js").write_text(output, encoding="utf-8")
+              Path("questions.js").write_text(output, encoding="utf-8")
+              for path in [
+                  "question_expansion.js",
+                  "question_expansion_2.js",
+                  "question_expansion_3.js",
+                  "question_expansion_4.js",
+              ]:
+                  Path(path).unlink()
 
-          for path in [
-              "question_expansion.js",
-              "question_expansion_2.js",
-              "question_expansion_3.js",
-              "question_expansion_4.js",
-          ]:
-              Path(path).unlink()
+              Path("merge-result.txt").write_text(
+                  "SUCCESS\\n" + json.dumps(counts) + "\\nTOTAL=" + str(len(questions)) + "\\n",
+                  encoding="utf-8"
+              )
+          except Exception:
+              Path("merge-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+              raise
 
-      - name: Commit consolidated bank
+      - name: Commit result or diagnostic
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add questions.js question_expansion.js question_expansion_2.js question_expansion_3.js question_expansion_4.js
-          git diff --cached --quiet || git commit -m "Merge all Classic questions into one file"
+          git add questions.js question_expansion.js question_expansion_2.js question_expansion_3.js question_expansion_4.js merge-result.txt merge-error.txt
+          git diff --cached --quiet || git commit -m "Diagnose Classic question consolidation"
           git push
