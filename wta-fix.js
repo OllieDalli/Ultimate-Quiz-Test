@@ -1,73 +1,115 @@
-// WTA question loading recovery patch.
-// Loaded after app.js so it can safely wrap the existing WTA flow.
+// Ultimate Quiz functional recovery patch.
+// Loaded after app.js from supabase.js.
+// This keeps Classic difficulty selection reliable and makes WTA question
+// loading recover automatically if the first reservation/render races Realtime.
 (function () {
-    let retryTimer = null;
-    let retryCount = 0;
-    const MAX_RETRIES = 12;
+    let recoveryTimer = null;
+    let wtaBusy = false;
+
+    function sameId(a, b) {
+        return a != null && b != null && String(a) === String(b);
+    }
+
+    function patchDifficultyButtons() {
+        if (!game || game.phase !== "difficulty") return;
+
+        const isMyTurn = sameId(game.current_player_id, myPlayerId);
+        document.querySelectorAll(".difficulty").forEach(button => {
+            if (button.dataset.ultimateDifficultyPatched !== "true") {
+                const replacement = button.cloneNode(true);
+                replacement.dataset.ultimateDifficultyPatched = "true";
+
+                replacement.addEventListener("click", async () => {
+                    if (!game || game.phase !== "difficulty") return;
+                    if (!sameId(game.current_player_id, myPlayerId)) return;
+
+                    const difficulty = String(
+                        replacement.dataset.difficulty || ""
+                    ).toLowerCase();
+
+                    if (!difficulty) return;
+                    await chooseDifficulty(difficulty);
+                });
+
+                button.replaceWith(replacement);
+                button = replacement;
+            }
+
+            button.disabled = !isMyTurn;
+            button.style.pointerEvents = isMyTurn ? "auto" : "none";
+        });
+    }
 
     function setWtaLoading(message) {
-        const el = document.getElementById('wta-question-text');
-        if (el) el.textContent = message;
+        const element = document.getElementById("wta-question-text");
+        if (element) element.textContent = message;
     }
 
-    function resetWtaLoadingState() {
-        if (typeof wtaQuestionLoading !== 'undefined') wtaQuestionLoading = false;
-        if (typeof wtaRoundInitialized !== 'undefined') wtaRoundInitialized = false;
+    function hasRenderedWtaQuestion() {
+        const question =
+            typeof selectedQuestion !== "undefined"
+                ? selectedQuestion
+                : null;
+        const answerButtons = document.getElementById("wta-answer-buttons");
+
+        return Boolean(
+            question?.id &&
+            answerButtons &&
+            answerButtons.querySelectorAll(".answer-button").length === 4
+        );
     }
 
-    function retryWtaLoad() {
-        if (!game || game.phase !== 'wta-question') return;
-        if (retryCount >= MAX_RETRIES) {
-            setWtaLoading('Could not load a WTA question. Please refresh and rejoin the game.');
-            return;
-        }
-        retryCount += 1;
-        resetWtaLoadingState();
-        setWtaLoading('Loading your question…');
-        clearTimeout(retryTimer);
-        retryTimer = setTimeout(() => {
-            try {
-                handleWtaQuestionPhase?.();
-            } catch (error) {
-                console.error('WTA retry failed:', error);
-                retryWtaLoad();
-            }
-        }, Math.min(900, 250 + retryCount * 50));
-    }
+    async function recoverWtaQuestion() {
+        if (wtaBusy || !game || game.phase !== "wta-question") return;
+        if (hasRenderedWtaQuestion()) return;
 
-    const original = window.handleWtaQuestionPhase;
-    if (typeof original !== 'function') {
-        console.error('WTA fix could not find handleWtaQuestionPhase');
-        return;
-    }
-
-    window.handleWtaQuestionPhase = async function patchedHandleWtaQuestionPhase() {
-        if (!game || game.phase !== 'wta-question') return;
+        wtaBusy = true;
+        setWtaLoading("Loading your question…");
 
         try {
-            await original.apply(this, arguments);
+            // The normal handler marks the round initialized before it tries to
+            // reserve the first question. Reset that flag so a failed first
+            // reservation can safely be attempted again.
+            wtaRoundInitialized = false;
+            wtaQuestionLoading = true;
 
-            const answerButtons = document.getElementById('wta-answer-buttons');
-            const hasQuestion = typeof selectedQuestion !== 'undefined' && selectedQuestion?.id;
-            const hasAnswers = answerButtons && answerButtons.children.length > 0;
+            const loaded = await loadWtaQuestionForMe();
 
-            if (!hasQuestion || !hasAnswers) {
-                console.warn('WTA question did not render; retrying.', {
-                    round: game.round,
-                    questionId: game.current_question_id
-                });
-                retryWtaLoad();
-                return;
+            if (loaded) {
+                wtaRoundInitialized = true;
+                renderWtaQuestion();
             }
-
-            retryCount = 0;
         } catch (error) {
-            console.error('WTA question loading failed:', error);
-            retryWtaLoad();
+            console.error("WTA question recovery failed:", error);
+        } finally {
+            wtaQuestionLoading = false;
+            wtaBusy = false;
         }
-    };
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (game?.phase === 'wta-question') retryWtaLoad();
-    });
+    function runRecovery() {
+        patchDifficultyButtons();
+
+        if (game?.phase === "wta-question") {
+            if (!hasRenderedWtaQuestion() && !wtaBusy) {
+                recoverWtaQuestion();
+            }
+        }
+    }
+
+    function startRecovery() {
+        if (recoveryTimer) return;
+        recoveryTimer = setInterval(runRecovery, 400);
+        runRecovery();
+    }
+
+    function stopRecovery() {
+        if (recoveryTimer) {
+            clearInterval(recoveryTimer);
+            recoveryTimer = null;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", startRecovery);
+    window.addEventListener("beforeunload", stopRecovery);
 })();
