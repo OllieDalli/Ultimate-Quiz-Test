@@ -43,11 +43,12 @@ jobs:
           node - <<'NODE'
           const fs = require('fs');
           const vm = require('vm');
-          const source = fs.readFileSync('questions.js', 'utf8');
+          const source = fs.readFileSync('questions.js', 'utf8') + '\n;globalThis.__QUESTIONS = QUESTIONS;';
           const context = {};
           vm.runInNewContext(source, context);
-          if (!Array.isArray(context.QUESTIONS)) throw new Error('QUESTIONS is not an array');
-          const counts = context.QUESTIONS.reduce((out, q) => {
+          const questions = context.__QUESTIONS;
+          if (!Array.isArray(questions)) throw new Error('QUESTIONS is not an array');
+          const counts = questions.reduce((out, q) => {
             const d = String(q.difficulty || '').toLowerCase();
             out[d] = (out[d] || 0) + 1;
             return out;
