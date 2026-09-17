@@ -2447,6 +2447,14 @@ function handleDifficultyPhase() {
 // CHOOSE DIFFICULTY
 // ============================================================
 
+function normalizeQuizDifficulty(value) {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "1" || raw === "easy" || raw === "easiest") return "easy";
+    if (raw === "2" || raw === "medium" || raw === "med") return "medium";
+    if (raw === "3" || raw === "hard" || raw === "difficult") return "hard";
+    return raw;
+}
+
 async function chooseDifficulty(difficulty) {
 
     if (!game) return;
@@ -2462,9 +2470,10 @@ async function chooseDifficulty(difficulty) {
     }
 
 
+    const requestedDifficulty = normalizeQuizDifficulty(difficulty);
     const questions =
-        getQuestionsForDifficulty(
-            difficulty
+        (Array.isArray(QUESTIONS) ? QUESTIONS : []).filter(question =>
+            normalizeQuizDifficulty(question?.difficulty) === requestedDifficulty
         );
 
 
@@ -2532,7 +2541,7 @@ async function chooseDifficulty(difficulty) {
                 player_id: myPlayerId,
                 round: game.round,
                 question_id: selectedQuestion.id,
-                difficulty: difficulty,
+                difficulty: requestedDifficulty,
                 answer: "",
                 correct: false,
                 points_awarded: 0
@@ -2561,7 +2570,7 @@ async function chooseDifficulty(difficulty) {
             .update({
                 phase: "question",
                 current_round_type: "classic",
-                current_difficulty: difficulty,
+                current_difficulty: requestedDifficulty,
                 current_question_id:
                     selectedQuestion.id,
                 current_answer: null,
@@ -2586,7 +2595,7 @@ async function chooseDifficulty(difficulty) {
         ...game,
         phase: "question",
         current_round_type: "classic",
-        current_difficulty: difficulty,
+        current_difficulty: requestedDifficulty,
         current_question_id: selectedQuestion.id,
         current_answer: null,
         question_started_at: new Date().toISOString()
@@ -3792,9 +3801,10 @@ function getWtaQuestions() {
 
     // Winner Takes All uses the Easy + Medium pools only.
     // Hard questions are deliberately excluded from this round.
-    return allQuestions.filter(question =>
-        question && (question.difficulty === "easy" || question.difficulty === "medium")
-    );
+    return allQuestions.filter(question => {
+        const difficulty = normalizeQuizDifficulty(question?.difficulty);
+        return difficulty === "easy" || difficulty === "medium";
+    });
 }
 
 async function getUsedWtaQuestionIds() {
