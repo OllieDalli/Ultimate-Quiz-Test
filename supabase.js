@@ -22,4 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
         script.async = false;
         document.head.appendChild(script);
     }, 0);
+
+    // Classic difficulty selection fix. This is loaded after app.js so it
+    // can safely replace the original difficulty handler.
+    setTimeout(() => {
+        const script = document.createElement("script");
+        script.src = "classic-difficulty-fix.js?v=1";
+        script.async = false;
+        document.head.appendChild(script);
+    }, 0);
 });
