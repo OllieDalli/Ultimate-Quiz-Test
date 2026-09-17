@@ -69,3 +69,5 @@ jobs:
           fi
           git commit -m "Fix Classic and WTA difficulty selection [skip ci]"
           git push
+
+# trigger fix run
